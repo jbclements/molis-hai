@@ -1,5 +1,7 @@
 #lang racket
 
+;; Copyright 2015 John Clements <clements@racket-lang.org>
+
 (require "bits-to-english.rkt")
 
 (provide (all-defined-out))

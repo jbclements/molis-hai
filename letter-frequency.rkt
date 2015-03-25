@@ -72,21 +72,9 @@
 (check-equal? (whitespace-crunch "  a \t\nbc de   ")
               " a bc de ")
 
+;; given a string and a character, add the char to the end and drop the first
 (define (string-rotate str chr)
   (string-append (substring str 1) (string chr)))
-
-(define (generate-char-sequence-from-bools seed bools tree-hash)
-  (generate-sequence-from-bools string-rotate seed bools tree-hash))
-
-;; given a seed (markov cell) and a list of booleans and a hash
-;; of huffman trees, generate a string
-(define (generate-string-from-bools seed bools tree-hash)
-  (string-append
-   seed
-   (list->string
-    (map car (generate-char-sequence-from-bools seed bools tree-hash)))))
-
-#;(generate-string "ot" dist-2-hash)
 
 ;; given a count-hash, return a huffman tree for choosing a seed (an n-gram
 ;; starting with a space)
@@ -106,53 +94,109 @@
 
 (define NUM-TRIALS 10000)
 
+;; given a seed, a list of bools, and a tree-hash, generate a sequence
+;; of (cons leaf bits-used)
+(define (generate-char-sequence-from-bools seed bools tree-hash)
+  (generate-sequence-from-bools string-rotate seed bools tree-hash))
+
+;; given a seed tree, a list of bools and a tree-hash, generate a sequence
+;; of (cons leaf bits-used)
+(define (generate-char-sequence/noseed seed-huff-tree bits tree-hash)
+  (match-define (cons seed bits-remaining)
+    (pick-leaf seed-huff-tree bits))
+  (define bits-used-for-seed (- (length bits) (length bits-remaining)))
+  ;; strip the space off:
+  (define seed-chars (string->list seed))
+  (define list-head
+    (cons (cons (first seed-chars) bits-used-for-seed)
+          (for/list ([char (rest seed-chars)])
+            (cons char 0))))
+  (append
+   list-head
+   (generate-char-sequence-from-bools seed bits-remaining tree-hash)))
+
+;; given a seed (markov cell) and a list of booleans and a hash
+;; of huffman trees, generate a string
+(define (generate-string-from-bools seed bools tree-hash)
+  (string-append
+   seed
+   (list->string
+    (map car (generate-char-sequence-from-bools seed bools tree-hash)))))
+
+#;(generate-string "ot" dist-2-hash)
+
 (define ENTROPY-BITS 56)
+
+;; generate a password string, using a seed chosen from the tree-hash
+(define (make-pwd-str/noseed seed-huff-tree tree-hash)
+  (sequence->string
+   (generate-char-sequence/noseed seed-huff-tree (make-bools-list ENTROPY-BITS)
+                                  tree-hash)))
 
 ;; generate a password string with the required number of bits of entropy
 (define (make-pwd-str seed tree-hash)
   (string-append
    seed
-   (list->string
-    (map car (generate-char-sequence-from-bools seed (make-bools-list ENTROPY-BITS)
-                                           tree-hash)))))
+   (sequence->string
+    (generate-char-sequence-from-bools seed (make-bools-list ENTROPY-BITS)
+                                       tree-hash))))
 
-(define (make-pwd-str/noseed seed-huff-tree tree-hash)
-  (define bits (make-bools-list ENTROPY-BITS))
-  (match-define (cons seed bits-remaining)
-    (pick-leaf seed-huff-tree bits))
-  (string-append 
-   ;; strip the space off:
-   (substring seed 1)
-   (list->string 
-    (map car (generate-char-sequence-from-bools seed bits-remaining tree-hash)))))
+;; given a paire
+(define (sequence->string-pair seq)
+  (when (for/or ([count (map cdr seq)])
+          (not (< count 16)))
+    (raise-argument-error 'sequence->string-pair 
+                          "sequence with all counts < 16"
+                          seq))
+  (list (list->string (map car seq))
+        (apply string-append (map (lambda (n)
+                                    (number->string n 16))
+                                  (map cdr seq)))))
+
+;; convert a sequence to a string
+(define (sequence->string seq)
+  (list->string (map car seq)))
 
 
+(define-values (source-path abbrev)
+  #;"/tmp/legalese.txt" 
+  (values (build-path here "a-tale-of-two-cities.txt") "atotc")
+  #;(build-path here "ascii-email-texts.txt")
+  #;"/tmp/dancing-queen.txt")
 
-
-
-(define text 
+(define text
   (whitespace-crunch
-   (file->string #;"/tmp/legalese.txt" 
-                 #;(build-path here "a-tale-of-two-cities.txt")
-                 (build-path here "ascii-email-texts.txt")
-                 #;"/tmp/dancing-queen.txt")))
+   (file->string source-path)))
 
-(define count-hash-1 (time (n-letter-count-hash 1 text)))
-(define tree-hash-1 (time (count-hash->trees count-hash-1)))
+;; run the analyses for a given "order"
+(define (build-hashes n)
+  (define count-hash (n-letter-count-hash n text))
+  (define tree-hash (count-hash->trees count-hash))
+  (define seed-tree (count-hash->seed-chooser count-hash))
+  (trees-hash->file tree-hash (build-path here (~a abbrev"-"n"-tree-hash.js")))
+  (tree->file seed-tree (build-path here (~a abbrev"-"n"-seed-tree.js")))
+  (values count-hash tree-hash seed-tree))
 
-(define count-hash-2 (n-letter-count-hash 2 text))
-(define tree-hash-2 (time (count-hash->trees count-hash-2)))
-(define seed-tree-2 (count-hash->seed-chooser count-hash-2))
+(define (run order)
+  (define-values (count-hash tree-hash seed-tree) (build-hashes order))
+  (cons (~a "passwords of order "order)
+        (cons
+         (sequence->string-pair
+          (generate-char-sequence/noseed seed-tree
+                                         (make-bools-list ENTROPY-BITS)
+                                         tree-hash))
+         (for/list ([i 8])
+           ;; strip off space:
+           (substring (make-pwd-str/noseed seed-tree tree-hash) 1)))))
 
-(hash-ref count-hash-2 "pr")
 
-(define count-hash-3 (time (n-letter-count-hash 3 text)))
-(define tree-hash-3 (time (count-hash->trees count-hash-3)))
-(define seed-tree-3 (count-hash->seed-chooser count-hash-3))
+(random-seed 2722197)
 
+(run 1)
+(run 2)
+(run 3)
 
-
-(check-equal? (generate-char-sequence-from-bools "Th" '() tree-hash-2)
+#;(check-equal? (generate-char-sequence-from-bools "Th" '() tree-hash-2)
               '())
 
 #;(printf "average length of passwords using 2-grams: ~v\n"
@@ -165,60 +209,19 @@
 ;; without seed randomization: 23.9
 ;; with seed randomization: 19.1 (!)
 
-;; write the tree out as js:
-(trees-hash->file tree-hash-2 "tree-2-hash.js")
-(tree->file seed-tree-2 "seed-tree-2.js")
-
-(random-seed 2722197)
-
-
-
-(define (sequence->string-pair seq)
-  (when (for/or ([count (map cdr seq)])
-          (not (< count 16)))
-    (raise-argument-error 'sequence->string-pair 
-                          "sequence with all counts < 16"
-                          seq))
-  (list (list->string (map car seq))
-        (apply string-append (map (lambda (n)
-                                    (number->string n 16))
-                                  (map cdr seq)))))
-
-(sequence->string-pair
+#;(sequence->string-pair
  (generate-char-sequence-from-bools "T" (make-bools-list ENTROPY-BITS) tree-hash-1))
 
-(for/list ([i 7])
-  (make-pwd-str "T" tree-hash-1))
-
-(sequence->string-pair
+#;(sequence->string-pair
  (generate-char-sequence-from-bools "Th" (make-bools-list ENTROPY-BITS) tree-hash-2))
 
-(for/list ([i 8])
+#;(for/list ([i 8])
   (make-pwd-str/noseed seed-tree-2 tree-hash-2))
 
 
 ;; *** FOUR AND HIGHER: ***
 
-(define count-hash-4 (time (n-letter-count-hash 4 text)))
-(define tree-hash-4 (time (count-hash->trees count-hash-4)))
-(define seed-tree-4 (count-hash->seed-chooser count-hash-4))
+(run 4)
+(run 5)
 
-(define count-hash-5 (time (n-letter-count-hash 5 text)))
-(define tree-hash-5 (time (count-hash->trees count-hash-5)))
-(define seed-tree-5 (count-hash->seed-chooser count-hash-5))
-
-(for/list ([i 8])
-  (make-pwd-str/noseed seed-tree-3 tree-hash-3))
-
-(for/list ([i 8])
-  (make-pwd-str/noseed seed-tree-4 tree-hash-4))
-
-#;(sequence->string-pair
- )
-
-(for/list ([i 8])
-  (make-pwd-str/noseed seed-tree-5 tree-hash-5))
-
-#;(sort (hash->list (hash-ref letter-count-hash #\"))
-      < #:key cdr)
 

@@ -1,5 +1,7 @@
 #lang typed/racket
 
+;; copyright 2015 John Clements <clements@racket-lang.org>
+
 (require typed/rackunit)
 
 (define bytesize 16)
