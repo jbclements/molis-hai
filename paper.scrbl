@@ -25,7 +25,10 @@ are generated with equal probability. We observe that the generated
 passwords appear to strike a reasonable balance between memorability
 and security. Using the system, we get 56-bit passwords like 
 @tt{The cusay is wither?" t}, rather than passwords like @tt{tQ$%Xc4Ef}.
-}
+
+Users can try the system, at
+
+@tt{http://www.brinckerhoff.org/molis-hai/}}
 
 @section{Introduction}
 
@@ -574,6 +577,11 @@ other schemes. Naturally, a claim like this cannot simply be taken as
 true; we must conduct a test to verify this claim. 
 
 We are currently building the tools to allow us to conduct this study.
+
+@section{Acknowledgments}
+
+Many thanks to Zachary Peterson for instantly pinpointing relevant research.
+Many thanks to Racket for being an amazing programming language.
 
 @(generate-bibliography)
 

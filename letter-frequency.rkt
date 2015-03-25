@@ -1,5 +1,10 @@
 #lang racket
 
+;; Copyright 2015 John Clements <clements@racket-lang.org>
+
+;; this file reads a text file, generates a bunch of
+;; models, and creates a bunch of passwords using them
+
 (require json
          rackunit
          "bits-to-english.rkt"
@@ -101,7 +106,7 @@
 
 (define NUM-TRIALS 10000)
 
-(define ENTROPY-BITS 69)
+(define ENTROPY-BITS 56)
 
 ;; generate a password string with the required number of bits of entropy
 (define (make-pwd-str seed tree-hash)
@@ -128,8 +133,8 @@
 (define text 
   (whitespace-crunch
    (file->string #;"/tmp/legalese.txt" 
-                 (build-path here "a-tale-of-two-cities.txt")
-                 #;(build-path here "ascii-email-texts.txt")
+                 #;(build-path here "a-tale-of-two-cities.txt")
+                 (build-path here "ascii-email-texts.txt")
                  #;"/tmp/dancing-queen.txt")))
 
 (define count-hash-1 (time (n-letter-count-hash 1 text)))
@@ -164,7 +169,7 @@
 (trees-hash->file tree-hash-2 "tree-2-hash.js")
 (tree->file seed-tree-2 "seed-tree-2.js")
 
-(random-seed 2722196)
+(random-seed 2722197)
 
 
 
@@ -188,7 +193,7 @@
 (sequence->string-pair
  (generate-char-sequence-from-bools "Th" (make-bools-list ENTROPY-BITS) tree-hash-2))
 
-(for/list ([i 4])
+(for/list ([i 8])
   (make-pwd-str/noseed seed-tree-2 tree-hash-2))
 
 
@@ -198,8 +203,9 @@
 (define tree-hash-4 (time (count-hash->trees count-hash-4)))
 (define seed-tree-4 (count-hash->seed-chooser count-hash-4))
 
-(define quintuple-letter-count-hash (time (n-letter-count-hash 5 text)))
-(define tree-5-hash (time (count-hash->trees quintuple-letter-count-hash)))
+(define count-hash-5 (time (n-letter-count-hash 5 text)))
+(define tree-hash-5 (time (count-hash->trees count-hash-5)))
+(define seed-tree-5 (count-hash->seed-chooser count-hash-5))
 
 (for/list ([i 8])
   (make-pwd-str/noseed seed-tree-3 tree-hash-3))
@@ -207,16 +213,12 @@
 (for/list ([i 8])
   (make-pwd-str/noseed seed-tree-4 tree-hash-4))
 
-(sequence->string-pair
- (generate-char-sequence-from-bools "The b" (make-bools-list ENTROPY-BITS)
-                               tree-5-hash))
+#;(sequence->string-pair
+ )
 
-(for/list ([i 7])
-  (make-pwd-str "The b" tree-5-hash))
+(for/list ([i 8])
+  (make-pwd-str/noseed seed-tree-5 tree-hash-5))
 
 #;(sort (hash->list (hash-ref letter-count-hash #\"))
       < #:key cdr)
 
-
-"ades nown us offick ar" 
-"2234251221633312233132"

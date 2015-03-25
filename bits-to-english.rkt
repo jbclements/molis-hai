@@ -1,10 +1,12 @@
 #lang typed/racket
 
+;; Copyright 2015 John Clements <clements@racket-lang.org>
+
+
 ;; putting back in the memoized part would probably
 ;; require making it untyped again...
 
 (require typed/rackunit
-         #;memoize
          "huffman.rkt")
 
 (provide count-hash->huff-tree
