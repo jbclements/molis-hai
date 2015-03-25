@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="John Clements">
+    <title>Generate Passwords</title>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <!-- Bootstrap core CSS
+    <link href="css/bootstrap.min.css" rel="stylesheet"> -->
+
+    <!-- Custom styles for this template -->
+    <link href="./css/jbc-custom.css" rel="stylesheet">
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-20037400-1', 'auto');
+      ga('send', 'pageview');
+    </script>
+  </head>
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Molis Hai</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6 col-md-offset-3">
+          <h3>Order-3 Markov Model using <i>A Tale of Two Cities</i></h3>
+
+          <p>This code generates passwords, using a markov model containing
+            Huffman trees. Traversing the Huffman trees allows selection of
+            a letter to consume few bits for common choices and many bits
+            for uncommon ones, allowing "biasing" toward more common sequences
+            without compromising the randomness of the generated passwords.
+          </p>
+
+          <p> This particular engine is based on Charles Dickens' <i>A Tale
+              of Two Cities</i>, although the entropy of the generated
+            passwords is independent of the choice of source text.
+          </p>
+          <p>
+            Another way of looking at this is that we're "decompressing" a
+            random bit string into english text.
+          </p>
+        <div>How many bits? <input id="numBits" value="56"></input></div>
+
+        <!--<div>How english-like?</div>-->
+
+        <button id="gobutton">refresh</button>
+
+        </div>
+      </div>
+      <div class="row bodyblock">
+        <div class="col-md-8 col-md-offset-2">
+        <h2 class="text-center">Which column would you rather memorize?</h2>
+        <table class="table" id="passwordtable">
+          <tr><th>bits</th><th>password</th></tr>
+          <tr><td>NOT YET</td><td>NOT YET</td></tr>
+        </table>
+        </div>
+      </div>
+      <div class="row bodyblock">
+        <div class="col-md-6 col-md-offset-3">
+          <p>Fine print: yes, they're secure. More specifically,
+          there's a bijection between the bitstrings and the
+          passwords, meaning that every password in the pool associated
+            with the corpus and the number of bits is generated
+            with equal likelihood.</p>
+
+          <p>Also, note that generating 8 of them
+            and picking the most readable one (as I do here, and
+            also when I'm generating my real passwords) essentially costs you
+            3 bits of entropy. So, if you really want
+            56 bits of entropy and some choice, set the entropy
+            to 59 bits and take your favorite.</p>
+
+          <p>The passwords you see here are generated on your
+            own machine. They are secure, unless
+            <ol><li>the bit generator in your browser is weak,</li>
+              <li>your machine is compromised,</li>
+              <li>there's a bug in my code, or</li>
+              <li>there's some other problem I failed to anticipate.</li>
+              </ol>
+            </p>
+
+          <p>Comments on the source code are also welcome.</p>
+
+          <p>For more details, see our preprint at
+            <a href="http://arxiv.org/abs/1502.07786">arxiv</a>.
+            </p>
+
+          <p>Or read the source code, at <a href="http://www.github.com/jbclements/molis-hai/">GitHub</a>.
+            Naturally, it's all in <a href="http://www.racket-lang.org/">Racket</a>
+            </p>
+
+          <p>Also, in case it wasn't obvious, the tool generated its own name,
+            "Molis Hai". In fact, it generated the string "There twass molis hai",
+            which sounds something like a proclamation.</p>
+
+          <p>Finally, many thanks to Zachary Peterson, @znjp, for pointing
+            me to all kinds of related work. Thanks!</p>
+        </div>
+      </div>
+      <div class="row bodyblock">
+        <small>Copyright 2015 John Clements &lt;clements@brinckerhoff.org&gt;</small>
+      </div>
+    </div>
+
+    <!--</form>-->
+    <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <!-- <script src="./jquery-2.1.3.js"></script> -->
+    <!-- easier just to load the framework than to figure out
+         how to comment/un-comment the tests -->
+    <script src="http://code.jquery.com/qunit/qunit-1.17.1.js"></script>
+    <!-- <script src="./qunit-1.17.1.js"></script>-->
+    <script src="./underscore.js"></script>
+    <script src="atotc-3-tree-hash.js"></script>
+    <script src="atotc-3-seed-tree.js"></script>
+    <!-- <script src="./traceur-runtime.js"></script> -->
+    <script src="./molis-hai.js"></script>
+    <script src="./generate-password.js"></script>
+  </body>
+<html>
