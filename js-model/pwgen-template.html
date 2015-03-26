@@ -38,6 +38,13 @@
           </button>
           <a class="navbar-brand" href="#">Molis Hai</a>
         </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="./pwgen-1.html">Order-1</a></li>
+            <li><a href="./pwgen-2.html">Order-2</a></li>
+            <li><a href="./pwgen-3.html">Order-3</a></li>
+          </ul>
+        </div>
       </div>
     </nav>
 
@@ -64,8 +71,12 @@
         <div>How many bits? <input id="numBits" value="56"></input></div>
         
         <!--<div>How english-like?</div>-->
+
+        <p>Here are some fresh passwords for you. Click "refresh" for
+          another set.</p>
         
         <button id="gobutton">refresh</button>
+        
         
         </div>
       </div>
@@ -132,10 +143,9 @@
          how to comment/un-comment the tests -->
     <script src="http://code.jquery.com/qunit/qunit-1.17.1.js"></script>
     <!-- <script src="./qunit-1.17.1.js"></script>-->
-    <script src="./underscore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
     <script src=@|tree-hash-path|></script>
     <script src=@|seed-tree-path|></script>
-    <!-- <script src="./traceur-runtime.js"></script> -->
     <script src="./molis-hai.js"></script>
     <script src="./generate-password.js"></script>
   </body>

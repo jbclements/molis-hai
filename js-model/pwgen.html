@@ -38,12 +38,21 @@
           </button>
           <a class="navbar-brand" href="#">Molis Hai</a>
         </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="./pwgen-1.html">Order-1</a></li>
+            <li><a href="./pwgen-2.html">Order-2</a></li>
+            <li><a href="./pwgen-3.html">Order-3</a></li>
+          </ul>
+        </div>
       </div>
     </nav>
 
     <div class="container">
       <div class="row">
         <div class="col-md-6 col-md-offset-3">
+          <h3>Order-2 Markov Model using <i>A Tale of Two Cities</i></h3>
+
           <p>This code generates passwords, using a markov model containing
             Huffman trees. Traversing the Huffman trees allows selection of
             a letter to consume few bits for common choices and many bits
@@ -60,11 +69,15 @@
             random bit string into english text.
           </p>
         <div>How many bits? <input id="numBits" value="56"></input></div>
-        
+
         <!--<div>How english-like?</div>-->
-        
+
+        <p>Here are some fresh passwords for you. Click "refresh" for
+          another set.</p>
+
         <button id="gobutton">refresh</button>
-        
+
+
         </div>
       </div>
       <div class="row bodyblock">
@@ -84,7 +97,7 @@
             with the corpus and the number of bits is generated
             with equal likelihood.</p>
 
-          <p>Also, note that generating 8 of them 
+          <p>Also, note that generating 8 of them
             and picking the most readable one (as I do here, and
             also when I'm generating my real passwords) essentially costs you
             3 bits of entropy. So, if you really want
@@ -101,17 +114,21 @@
             </p>
 
           <p>Comments on the source code are also welcome.</p>
-          
+
           <p>For more details, see our preprint at
             <a href="http://arxiv.org/abs/1502.07786">arxiv</a>.
             </p>
 
           <p>Or read the source code, at <a href="http://www.github.com/jbclements/molis-hai/">GitHub</a>.
+            Naturally, it's all in <a href="http://www.racket-lang.org/">Racket</a>
             </p>
 
           <p>Also, in case it wasn't obvious, the tool generated its own name,
             "Molis Hai". In fact, it generated the string "There twass molis hai",
             which sounds something like a proclamation.</p>
+
+          <p>Finally, many thanks to Zachary Peterson, @znjp, for pointing
+            me to all kinds of related work. Thanks!</p>
         </div>
       </div>
       <div class="row bodyblock">
@@ -126,10 +143,9 @@
          how to comment/un-comment the tests -->
     <script src="http://code.jquery.com/qunit/qunit-1.17.1.js"></script>
     <!-- <script src="./qunit-1.17.1.js"></script>-->
-    <script src="./underscore.js"></script>
-    <script src="./tree-2-hash.js"></script>
-    <script src="./seed-tree-2.js"></script>
-    <!-- <script src="./traceur-runtime.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+    <script src="atotc-2-tree-hash.js"></script>
+    <script src="atotc-2-seed-tree.js"></script>
     <script src="./molis-hai.js"></script>
     <script src="./generate-password.js"></script>
   </body>
