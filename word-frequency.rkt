@@ -84,7 +84,7 @@
                                            (make-bools-list ENTROPY-BITS)
                                            tree-hash)))))
 
-(define SEED '(#"It" #" " #"was"))
+(define SEED '(#" " #"that" #" "))
 
 (for/list ([i 8])
   (make-pwd-str SEED tree-3-hash))
