@@ -161,7 +161,8 @@
 (define-values (source-path abbrev)
   #;"/tmp/legalese.txt" 
   #;(values (build-path here "a-tale-of-two-cities.txt") "atotc")
-  (values (build-path here "tagore.txt") "tagore")
+  (values (build-path here "king-lear.txt") "kinglear")
+  #;(values (build-path here "tagore.txt") "tagore")
   #;(build-path here "ascii-email-texts.txt")
   #;"/tmp/dancing-queen.txt")
 
