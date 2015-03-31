@@ -45,7 +45,7 @@ var MolisHai = (function() {
   if ((typeof window === "undefined")
     || (typeof window.crypto === "undefined")
     || (typeof window.crypto.getRandomValues === "undefined")) {
-    alert("can't find window.crypto.getRandomValues. TOTAL FAIL.");
+    alert("can't find window.crypto.getRandomValues. Can't generate secure passwords.");
     // fall back to insecure random number generation here?
   }
 

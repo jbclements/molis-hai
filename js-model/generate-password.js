@@ -25,6 +25,10 @@ var GeneratePassword =  (function() {
                : (bitlistToNibble(bitlist.slice(0,remainder),0,0)
                   .toString(16)));
     for (var i = 0; i<nibbles; i++) {
+      // insert spaces to allow better wrapping on small screens:
+      if ((i%8 === 0) && (i !== 0)){
+        str = str + " ";
+      }
       var nextBits = bitlist.slice(remainder+(i*4),remainder+((i+1)*4));
       str = str + bitlistToNibble(nextBits,0,0).toString(16);
     }
@@ -36,7 +40,7 @@ var GeneratePassword =  (function() {
   // old browser compatibility, grr:
   var myIsNaN = (Number.isNaN ? Number.isNaN
                : function(n){return n !== n;});
-  
+
   // gets the current number of bits from the box.
   // EFFECT: sets it to the calculated value.
   function getNumBits(){
@@ -66,7 +70,11 @@ var GeneratePassword =  (function() {
     // can't do this without ES6:
     //var concat = (a,b)=>(a.concat(b));
     var concat = function(a,b){return a.concat(b);};
-    return _.foldl(_.map(seq,fst),concat);
+    var pwd =  _.foldl(_.map(seq,fst),concat);
+    // password might end with a space; if so, add an "X" (note: deleting
+    // the space would compromise entropy)
+    var fixedPwd = ((pwd[pwd.length - 1] === ' ') ? pwd+"X" : pwd);
+    return fixedPwd;
   }
 
   var DEFAULTBITS = 56;
