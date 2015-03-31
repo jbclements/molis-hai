@@ -72,6 +72,13 @@
 (check-equal? (whitespace-crunch "  a \t\nbc de   ")
               " a bc de ")
 
+;; remove all quotes from a string
+(define (kill-quotes str)
+  (regexp-replace* #px"\"" str ""))
+
+(check-equal? (kill-quotes "the \"only\" way")
+              "the only way")
+
 ;; given a string and a character, add the char to the end and drop the first
 (define (string-rotate str chr)
   (string-append (substring str 1) (string chr)))
@@ -167,8 +174,9 @@
   #;"/tmp/dancing-queen.txt")
 
 (define text
-  (whitespace-crunch
-   (file->string source-path)))
+  (kill-quotes
+   (whitespace-crunch
+    (file->string source-path))))
 
 ;; run the analyses for a given "order"
 (define (build-hashes n)
@@ -204,12 +212,15 @@
 #;(printf "average length of passwords using 2-grams: ~v\n"
         (+ 2 (time (avg-len (lambda () (make-pwd-str "Th" tree-hash-2))))))
 
-#;(printf "average length of passwords using 2-grams/noseed: ~v\n"
+(define-values (count-hash-2 tree-hash-2 seed-tree-2) (build-hashes 2))
+(printf "average length of passwords using 2-grams/noseed: ~v\n"
         (sub1 
          (time (avg-len (lambda () (make-pwd-str/noseed seed-tree-2 tree-hash-2))))))
 
 ;; without seed randomization: 23.9
 ;; with seed randomization: 19.1 (!)
+
+(+ 19 623/625)
 
 #;(sequence->string-pair
  (generate-char-sequence-from-bools "T" (make-bools-list ENTROPY-BITS) tree-hash-1))
