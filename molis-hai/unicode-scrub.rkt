@@ -1,6 +1,6 @@
 #lang racket
 
-(require shelly/unicode-scrub)
+(require "unicode-scrub-lib.rkt")
 
 (define char-mapping
   (hash #\’ "'"
