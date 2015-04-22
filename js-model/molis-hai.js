@@ -146,87 +146,91 @@ var MolisHai = (function() {
 
   // I bet ES6 has a nice way to manage the tests...
 
+  if (typeof(QUnit) !== "undefined") {
+    (function(){
+      QUnit.test("uint16ToBitList tests",function(assert){
+        assert.deepEqual(uint16ToBitList(24),
+                         [false, false, false, false,
+                          false, false, false, false,
+                          false, false, false, true,
+                          true,  false, false, false])
+      })
 
-  QUnit.test("uint16ToBitList tests",function(assert){
-    assert.deepEqual(uint16ToBitList(24),
-                       [false, false, false, false,
-                        false, false, false, false,
-                        false, false, false, true,
-                        true,  false, false, false])
-  })
-
-  QUnit.test("arrToBitList tests",function(assert){
-    assert.deepEqual(arrToBitList(new Uint16Array([24,13])),
-                       [false, false, false, false,
-                        false, false, false, false,
-                        false, false, false, true,
-                        true,  false, false, false,
-                        false, false, false, false,
-                        false, false, false, false,
-                        false, false, false, false,
-                        true, true, false, true]);})
+      QUnit.test("arrToBitList tests",function(assert){
+        assert.deepEqual(arrToBitList(new Uint16Array([24,13])),
+                         [false, false, false, false,
+                          false, false, false, false,
+                          false, false, false, true,
+                          true,  false, false, false,
+                          false, false, false, false,
+                          false, false, false, false,
+                          false, false, false, false,
+                          true, true, false, true]);})
 
 
-  QUnit.test("traverse tests", function (assert){
-    var testTree = {a:3,b:{a:{a:1,b:2},b:4}}
-    function runTest(bits,result) {
-      assert.deepEqual(pickLeaf(testTree,bits),result);
-    }
-    runTest([],{leaf:3,remaining:[]});
-    runTest([true],{leaf:3,remaining:[]});
-    runTest([true,true],{leaf:3,remaining:[true]});
-    runTest([false,true],{leaf:1,remaining:[]});
-    runTest([false,false],{leaf:4,remaining:[]});
-  });
+      QUnit.test("traverse tests", function (assert){
+        var testTree = {a:3,b:{a:{a:1,b:2},b:4}}
+        function runTest(bits,result) {
+          assert.deepEqual(pickLeaf(testTree,bits),result);
+        }
+        runTest([],{leaf:3,remaining:[]});
+        runTest([true],{leaf:3,remaining:[]});
+        runTest([true,true],{leaf:3,remaining:[true]});
+        runTest([false,true],{leaf:1,remaining:[]});
+        runTest([false,false],{leaf:4,remaining:[]});
+      });
 
-  QUnit.test("TextModel test", function(assert){
-    assert.deepEqual(pickLeaf(TextModel["xp"],[false,true,false,false]),
-                     {leaf:"l",remaining:[false]})
-  });
+      QUnit.test("TextModel test", function(assert){
+        assert.deepEqual(pickLeaf(TextModel["xp"],[false,true,false,false]),
+                         {leaf:"l",remaining:[false]})
+      });
 
-  QUnit.test("SeedModel test", function(assert){
-    assert.deepEqual(pickLeaf(SeedModel,[true,true,false,true]),
-                    {leaf:" i",remaining: []})
-  });
+      QUnit.test("SeedModel test", function(assert){
+        assert.deepEqual(pickLeaf(SeedModel,[true,true,false,true]),
+                         {leaf:" i",remaining: []})
+      });
 
-  QUnit.test("generateSequenceWithSeed test", function(assert){
-    assert.deepEqual(generateSequenceWithSeed("re",[true,false,true,true,
-                                            false,true,false],
-                                      TextModel),
-                     [["a",3],["s",3],[" ",1]])});
+      QUnit.test("generateSequenceWithSeed test", function(assert){
+        assert.deepEqual(generateSequenceWithSeed("re",[true,false,true,true,
+                                                        false,true,false],
+                                                  TextModel),
+                         [["a",3],["s",3],[" ",1]])});
 
-    QUnit.test("generateSequence test", function(assert){
-      assert.deepEqual(generateSequence(SeedModel,[true, true, false, true,
-                                                   true,false,true,true,
-                                                   false,true,false],
-                                        TextModel),
-                       // regression only...
-                       [[" i",4],["t",2],["e",4],[".",1]])})
+      QUnit.test("generateSequence test", function(assert){
+        assert.deepEqual(generateSequence(SeedModel,[true, true, false, true,
+                                                     true,false,true,true,
+                                                     false,true,false],
+                                          TextModel),
+                         // regression only...
+                         [[" i",4],["t",2],["e",4],[" ",1]])})
 
-  // Return the results of applying the iteratee to each element.
-  function andmap(obj, iteratee, context) {
-    var length = obj.length,
-        result = true;
-    for (var index = 0; index < length; index++) {
-      if (!(iteratee(obj[index]))) {
-        return false;
-      }
-    }
-    return true;
-  };
+      // Return the results of applying the iteratee to each element.
+      function andmap(obj, iteratee, context) {
+        var length = obj.length,
+            result = true;
+        for (var index = 0; index < length; index++) {
+          if (!(iteratee(obj[index]))) {
+            return false;
+          }
+        }
+        return true;
+      };
 
-  QUnit.test("getBits length tests", function(assert){
-    assert.strictEqual(getBits(32).length,32);
-    assert.strictEqual(getBits(33).length,33);
-    assert.strictEqual(getBits(7).length,7);
-    assert.ok(andmap(getBits(6),function(a){return ((a===true)||(a===false));}));
-  })
+      QUnit.test("getBits length tests", function(assert){
+        assert.strictEqual(getBits(32).length,32);
+        assert.strictEqual(getBits(33).length,33);
+        assert.strictEqual(getBits(7).length,7);
+        assert.ok(andmap(getBits(6),function(a){return ((a===true)||(a===false));}));
+      })
 
-  QUnit.test("legalseed tests", function(assert){
-    assert.strictEqual(isLegalSeed("ab",{}),false);
-    assert.strictEqual(isLegalSeed("ab",TextModel),true);
-    assert.strictEqual(isLegalSeed("XQ",TextModel),false);
-  })
+      QUnit.test("legalseed tests", function(assert){
+        assert.strictEqual(isLegalSeed("ab",{}),false);
+        assert.strictEqual(isLegalSeed("ab",TextModel),true);
+        assert.strictEqual(isLegalSeed("XQ",TextModel),false);
+      });
+    }());
+  }
+
   return {
     getBits : getBits,
     generateSequence : generateSequence,

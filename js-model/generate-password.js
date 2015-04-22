@@ -119,6 +119,29 @@ var GeneratePassword =  (function() {
     )
   }
 
+  // TESTS
+
+  if (typeof(QUnit) !== "undefined") {
+
+    QUnit.test("conversions", function(assert){
+      assert.strictEqual(bitlistToNibble([false, true, false],0,0),2);
+      assert.strictEqual(bitlistToNibble([true,false, true, false],0,0),10);
+    });
+
+    QUnit.test("multi-nibble conversions",function(assert){
+      assert.strictEqual(bitlistToHexString([false,true,false]),"2");
+      assert.strictEqual(bitlistToHexString([false,true,false,true]),"5");
+      assert.strictEqual(bitlistToHexString([false,true,false,true,true]),"0b");
+      // spaces are inserted every 8 chars:
+      assert.strictEqual(bitlistToHexString(MolisHai.getBits(40)).length,11);
+      assert.strictEqual(bitlistToHexString(MolisHai.getBits(56)).length,15);
+    });
+
+    QUnit.test("bitlist->password",function(assert){
+      assert.strictEqual(bitlistToPassword([true,true,false,true])," i");
+    });
+  }
+
   return {
     start : (function(){
       regenerate();
@@ -127,35 +150,7 @@ var GeneratePassword =  (function() {
       regenerate();
     })}
 
-  // TESTS
 
-    QUnit.test("conversions", function(assert){
-    assert.strictEqual(bitlistToNibble([false, true, false],0,0),2);
-    assert.strictEqual(bitlistToNibble([true,false, true, false],0,0),10);
-  })
-
-  QUnit.test("multi-nibble conversions",function(assert){
-    assert.strictEqual(bitlistToHexString([false,true,false]),"2");
-    assert.strictEqual(bitlistToHexString([false,true,false,true]),"5");
-    assert.strictEqual(bitlistToHexString([false,true,false,true,true]),"0B");
-    assert.strictEqual(bitlistToHexString(MolisHai.getBits(56)).length,14);
-
-  })
-
-  QUnit.test("bitlist->password",function(assert){
-    assert.strictEqual(bitlistToPassword([true,true,false,true]),"av");
-  })
 
 
 }());
-
-$( document ).ready(function() {
-  //GeneratePassword.start();
-  // set up a handler for the go button
-  $( "#gobutton" ).click(function( event ) {
-    GeneratePassword.gobuttonclick();
-    event.preventDefault();
-    });
-  // generate passwords just to have some there:
-  GeneratePassword.start();
-});
