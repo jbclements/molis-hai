@@ -7,5 +7,5 @@
 #;(define version "2015-10-13-12:44")
 #;(define release-notes '((p "improved windows host api handling, "
                            "bugfixes")))
-#;(define compile-omit-paths '("test"))
+(define compile-omit-paths '("email-extraction"))
 

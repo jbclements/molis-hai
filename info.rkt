@@ -5,7 +5,6 @@
 (define deps
   (list "base"
         "data-enumerate-lib"
-        "net-lib"
         "rackunit-lib"
         "scribble-lib"
         "typed-racket-lib"

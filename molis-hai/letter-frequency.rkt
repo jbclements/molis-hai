@@ -9,7 +9,7 @@
          rackunit
          "bits-to-english.rkt"
          "hash-common.rkt"
-         shelly/random-password
+         "random-password.rkt"
          racket/runtime-path)
 
 

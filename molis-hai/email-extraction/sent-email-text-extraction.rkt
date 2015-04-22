@@ -1,5 +1,11 @@
 #lang racket
 
+;; this code is for extracting sent emails. More specifically,
+;; it extracts only non-quoted text from an mboxrd-formatted
+;; file (that is, the standard UNIX 'mbox' format.) If you
+;; want to run this code, you'll have to install the mboxrd
+;; package.
+
 (require mboxrd-read
          net/head
          net/mime
