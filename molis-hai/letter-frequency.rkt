@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 ;; Copyright 2015 John Clements <clements@racket-lang.org>
 
@@ -10,7 +10,24 @@
          "bits-to-english.rkt"
          "hash-common.rkt"
          "random-password.rkt"
-         racket/runtime-path)
+         racket/contract
+         racket/runtime-path
+         (only-in racket/file file->string))
+
+#;(provide (contract-out
+          [build-model (-> string? model?)]
+          [write-model (-> model? output-port? void?)]))
+
+;; a run-model maps a state to a huffman tree of results
+(define model? (cons/c hash? any/c)
+  #;(HashTable state? (HuffTree result?)))
+
+;; a seed-tree is a huffman tree of states, used to pick
+;; an initial state
+(define seed-tree? any/c #;(HuffTree result?))
+
+(define state? any/c)
+(define result? any/c)
 
 
 (define-runtime-path here ".")
@@ -24,26 +41,29 @@
     (extend-hash h (substring text i (+ i n))
                  (string-ref text (+ i n)))))
 
+;; write a jsexpr to a js file so it can be loaded in javascript
+(define (write-jsexpr top-level-varname jsexpr port)
+  (fprintf port "~a = \n" top-level-varname)
+  (write-json jsexpr port)
+  (display ";\n" port))
+
 ;; write a jsexpr to a js file so it can be loaded in js
-(define (jsexpr->file top-level-varname filename jsexpr)
-  (with-output-to-file filename
+(define (jsexpr->file top-level-varname jsexpr filename)
+  (call-with-output-file filename
     #:exists 'truncate
-    (lambda ()
-      (display (~a top-level-varname" = \n"))
-      (write-json jsexpr)
-      (display ";\n"))))
+    (lambda (port) (write-jsexpr top-level-varname jsexpr port))))
 
 ;; serialize a tree-hash to a file
 (define (trees-hash->file trees-hash filename)
-  (jsexpr->file "TextModel" filename
-                (for/hash ([(k v) (in-hash trees-hash)])
-                  (values (string->symbol k)
-                          (huffman-tree->jsexpr v)))))
+  (define the-jsexpr
+    (for/hash ([(k v) (in-hash trees-hash)])
+      (values (string->symbol k)
+              (huffman-tree->jsexpr v))))
+  (jsexpr->file "TextModel" the-jsexpr filename))
 
 ;; serialize a single huffman tree to a file
 (define (tree->file tree filename)
-  (jsexpr->file "SeedModel" filename
-                (huffman-tree->jsexpr tree)))
+  (jsexpr->file "SeedModel" (huffman-tree->jsexpr tree) filename))
 
 ;; translate a huffman tree to a jsexpr
 (define (huffman-tree->jsexpr tree)
@@ -92,15 +112,6 @@
 (define (starts-with-space? str)
   (equal? (string-ref str 0) #\space))
 
-;; compute the average length of a password chosen by a particular
-;; scheme. Just do monte carlo...
-(define (avg-len generator)
-  (/ (for/sum ([i (in-range NUM-TRIALS)])
-       (string-length (generator)))
-     NUM-TRIALS))
-
-(define NUM-TRIALS 10000)
-
 ;; given a seed, a list of bools, and a tree-hash, generate a sequence
 ;; of (cons leaf bits-used)
 (define (generate-char-sequence-from-bools seed bools tree-hash)
@@ -109,14 +120,15 @@
 ;; given a seed tree, a list of bools and a tree-hash, generate a sequence
 ;; of (cons leaf bits-used)
 (define (generate-char-sequence/noseed seed-huff-tree bits tree-hash)
-  (match-define (cons seed bits-remaining)
-    (pick-leaf seed-huff-tree bits))
+  (define leaf-pair (pick-leaf seed-huff-tree bits))
+  (define seed (car leaf-pair))
+  (define bits-remaining (cdr leaf-pair))
   (define bits-used-for-seed (- (length bits) (length bits-remaining)))
   ;; strip the space off:
   (define seed-chars (string->list seed))
   (define list-head
-    (cons (cons (first seed-chars) bits-used-for-seed)
-          (for/list ([char (rest seed-chars)])
+    (cons (cons (car seed-chars) bits-used-for-seed)
+          (for/list ([char (cdr seed-chars)])
             (cons char 0))))
   (append
    list-head
@@ -148,7 +160,7 @@
     (generate-char-sequence-from-bools seed (make-bools-list ENTROPY-BITS)
                                        tree-hash))))
 
-;; given a paire
+;; given a pair
 (define (sequence->string-pair seq)
   (when (for/or ([count (map cdr seq)])
           (not (< count 16)))
@@ -183,13 +195,16 @@
   (define count-hash (n-letter-count-hash n text))
   (define tree-hash (count-hash->trees count-hash))
   (define seed-tree (count-hash->seed-chooser count-hash))
-  (trees-hash->file tree-hash (build-path here (~a abbrev"-"n"-tree-hash.js")))
-  (tree->file seed-tree (build-path here (~a abbrev"-"n"-seed-tree.js")))
+  (trees-hash->file tree-hash (build-path here
+                                          (format "~a-~a-tree-hash.js"
+                                                  abbrev n)))
+  (tree->file seed-tree (build-path here (format "~a-~a-seed-tree.js"
+                                                 abbrev n)))
   (values count-hash tree-hash seed-tree))
 
 (define (run order)
   (define-values (count-hash tree-hash seed-tree) (build-hashes order))
-  (cons (~a "passwords of order "order)
+  (cons (format "passwords of order ~a" order)
         (cons
          (sequence->string-pair
           (generate-char-sequence/noseed seed-tree
@@ -209,18 +224,27 @@
 #;(check-equal? (generate-char-sequence-from-bools "Th" '() tree-hash-2)
               '())
 
+;; compute the average length of a password chosen by a particular
+;; scheme. Just do monte carlo...
+(define (avg-len generator)
+  (/ (for/sum ([i (in-range NUM-TRIALS)])
+       (string-length (generator)))
+     NUM-TRIALS))
+
+(define NUM-TRIALS 10000)
+
 #;(printf "average length of passwords using 2-grams: ~v\n"
         (+ 2 (time (avg-len (lambda () (make-pwd-str "Th" tree-hash-2))))))
 
-(define-values (count-hash-2 tree-hash-2 seed-tree-2) (build-hashes 2))
-(printf "average length of passwords using 2-grams/noseed: ~v\n"
+#;(define-values (count-hash-2 tree-hash-2 seed-tree-2) (build-hashes 2))
+#;(printf "average length of passwords using 2-grams/noseed: ~v\n"
         (sub1 
          (time (avg-len (lambda () (make-pwd-str/noseed seed-tree-2 tree-hash-2))))))
 
 ;; without seed randomization: 23.9
 ;; with seed randomization: 19.1 (!)
 
-(+ 19 623/625)
+#;(+ 19 623/625)
 
 #;(sequence->string-pair
  (generate-char-sequence-from-bools "T" (make-bools-list ENTROPY-BITS) tree-hash-1))
@@ -234,7 +258,7 @@
 
 ;; *** FOUR AND HIGHER: ***
 
-(run 4)
-(run 5)
+;(run 4)
+;(run 5)
 
 
