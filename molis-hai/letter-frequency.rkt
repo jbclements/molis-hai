@@ -8,7 +8,6 @@
 (require json
          rackunit
          "huffman-wrapper.rkt"
-         "huffman-serialize.rkt"
          "hash-common.rkt"
          "random-password.rkt"
          racket/contract
@@ -32,15 +31,6 @@
 
 
 (define-runtime-path here ".")
-
-;; given a number of characters and a source text,
-;; build a hash of the number of times each n-gram
-;; transitions to a given letter
-(define (n-letter-count-hash n text)
-  (for/fold ([h (hash)])
-            ([i (in-range (- (string-length text) n))])
-    (extend-hash h (substring text i (+ i n))
-                 (string-ref text (+ i n)))))
 
 ;; write a jsexpr to a js file so it can be loaded in javascript
 (define (write-jsexpr top-level-varname jsexpr port)
@@ -69,9 +59,6 @@
 (define (str->str s) s)
 (define (char->str ch) (string ch))
 
-;; crunch whitespace in a string
-(define (whitespace-crunch str)
-  (regexp-replace* #px"[ \t\r\n]+" str " "))
 
 (check-equal? (whitespace-crunch "  a \t\nbc de   ")
               " a bc de ")
@@ -90,7 +77,7 @@
 ;; given a count-hash, return a huffman tree for choosing a seed (an n-gram
 ;; starting with a space)
 (define (count-hash->seed-chooser count-hash)
-  (count-hash->seed-chooser* starts-with-space? count-hash))
+  (kvcount->seed-chooser* starts-with-space? count-hash))
 
 ;; does this string start with a space?
 (define (starts-with-space? str)
@@ -177,7 +164,7 @@
 ;; run the analyses for a given "order"
 (define (build-hashes n)
   (define count-hash (n-letter-count-hash n text))
-  (define tree-hash (count-hash->trees count-hash))
+  (define tree-hash (kvcount->model count-hash))
   (define seed-tree (count-hash->seed-chooser count-hash))
   (trees-hash->file tree-hash (build-path here
                                           (format "~a-~a-tree-hash.js"
