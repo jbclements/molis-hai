@@ -66,10 +66,9 @@
 (define ENTROPY-BITS 56)
 
 ;; generate a password string, using a seed chosen from the tree-hash
-(define (make-pwd-str/noseed seed-huff-tree tree-hash)
+(define (make-pwd-str/noseed model)
   (sequence->string
-   (generate-char-sequence/noseed seed-huff-tree (make-bools-list ENTROPY-BITS)
-                                  tree-hash)))
+   (generate-char-sequence/noseed model (make-bools-list ENTROPY-BITS))))
 
 ;; generate a password string with the required number of bits of entropy
 (define (make-pwd-str seed tree-hash)
@@ -123,7 +122,7 @@
           (generate-char-sequence/noseed model (make-bools-list ENTROPY-BITS)))
          (for/list ([i 8])
            ;; strip off space:
-           (substring (make-pwd-str/noseed seed-tree tree-hash) 1)))))
+           (substring (make-pwd-str/noseed model) 1)))))
 
 
 (random-seed 2722197)
