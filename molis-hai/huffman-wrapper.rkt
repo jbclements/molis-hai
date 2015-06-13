@@ -11,12 +11,15 @@
 
 (provide jsexpr->huffman-tree
          huffman-tree->jsexpr
+         (struct-out Model)
          CountHash
          Trans)
 
+;; a model contains a Trans and a seed-choser
+(define-struct (S T) Model ([trans : (Trans S T)] [seed-chooser : (MyTree S)]))
+
 ;; represents a map from states to a huffman tree of transitions:
 (define-type (Trans S T) (HashTable S (MyTree T)))
-
 
 (define-type (CountHash K) (HashTable K Natural))
 

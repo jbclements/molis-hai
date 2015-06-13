@@ -8,9 +8,54 @@
          "huffman.rkt"
          typed/rackunit)
 
-(provide generate-sequence-from-bools
+(provide generate-char-sequence/noseed
+         generate-char-sequence-from-bools
          make-bools-list
          pick-leaf)
+
+
+;; given a seed tree, a list of bools and a tree-hash, generate a sequence
+;; of (cons leaf bits-used)
+(: generate-char-sequence/noseed
+   ((Model String Char) (Listof Boolean) -> (Listof (Pair Char Natural))))
+(define (generate-char-sequence/noseed model bits)
+  (define leaf-pair (pick-leaf (Model-seed-chooser model) bits))
+  (define seed (car leaf-pair))
+  (define bits-remaining (cdr leaf-pair))
+  (define bits-used-for-seed (ensure-nonnegative (- (length bits) (length bits-remaining))))
+  ;; strip the space off:
+  (define seed-chars (string->list seed))
+  (: list-head (Listof (Pair Char Natural)))
+  (define list-head
+    (cons (cons (car seed-chars) bits-used-for-seed)
+          (for/list : (Listof (Pair Char Natural))
+            ([char (in-list (cdr seed-chars))])
+            (cons char 0))))
+  (append
+   list-head
+   (generate-char-sequence-from-bools seed bits-remaining (Model-trans model))))
+
+;; given a seed (markov cell) and a list of booleans and a hash
+;; of huffman trees, generate a string
+(: generate-string-from-bools (String (Listof Boolean) (Trans String Char) -> String))
+(define (generate-string-from-bools seed bools tree-hash)
+  (string-append
+   seed
+   (list->string
+    (map (ann car ((Pair Char Natural) -> Char))
+         (generate-char-sequence-from-bools seed bools tree-hash)))))
+
+;; given a seed, a list of bools, and a tree-hash, generate a sequence
+;; of (cons leaf bits-used)
+(: generate-char-sequence-from-bools
+   (String (Listof Boolean) (Trans String Char) -> (Listof (Pair Char Natural))))
+(define (generate-char-sequence-from-bools seed bools tree-hash)
+  (generate-sequence-from-bools string-rotate seed bools tree-hash))
+
+;; given a string and a character, add the char to the end and drop the first
+(: string-rotate : (String Char -> String))
+(define (string-rotate str chr)
+  (string-append (substring str 1) (string chr)))
 
 ;; given a (state+transition->state) mapping
 ;; and a seed (markov cell) and a list of booleans and a hash
@@ -42,6 +87,8 @@
 (: make-bools-list (Natural -> (Listof Boolean)))
 (define (make-bools-list len)
   (for/list ([i len]) (= (random 2) 0)))
+
+;; GENERIC
 
 ;; given a decision tree and a boolean generator,
 ;; return a leaf and the remaining bools

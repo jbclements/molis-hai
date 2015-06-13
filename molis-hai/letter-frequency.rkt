@@ -61,43 +61,6 @@
 (define (char->str ch) (string ch))
 
 
-
-;; given a string and a character, add the char to the end and drop the first
-(define (string-rotate str chr)
-  (string-append (substring str 1) (string chr)))
-
-
-
-;; given a seed, a list of bools, and a tree-hash, generate a sequence
-;; of (cons leaf bits-used)
-(define (generate-char-sequence-from-bools seed bools tree-hash)
-  (generate-sequence-from-bools string-rotate seed bools tree-hash))
-
-;; given a seed tree, a list of bools and a tree-hash, generate a sequence
-;; of (cons leaf bits-used)
-(define (generate-char-sequence/noseed seed-huff-tree bits tree-hash)
-  (define leaf-pair (pick-leaf seed-huff-tree bits))
-  (define seed (car leaf-pair))
-  (define bits-remaining (cdr leaf-pair))
-  (define bits-used-for-seed (- (length bits) (length bits-remaining)))
-  ;; strip the space off:
-  (define seed-chars (string->list seed))
-  (define list-head
-    (cons (cons (car seed-chars) bits-used-for-seed)
-          (for/list ([char (cdr seed-chars)])
-            (cons char 0))))
-  (append
-   list-head
-   (generate-char-sequence-from-bools seed bits-remaining tree-hash)))
-
-;; given a seed (markov cell) and a list of booleans and a hash
-;; of huffman trees, generate a string
-(define (generate-string-from-bools seed bools tree-hash)
-  (string-append
-   seed
-   (list->string
-    (map car (generate-char-sequence-from-bools seed bools tree-hash)))))
-
 #;(generate-string "ot" dist-2-hash)
 
 (define ENTROPY-BITS 56)
@@ -141,31 +104,23 @@
   #;(build-path here "ascii-email-texts.txt")
   #;"/tmp/dancing-queen.txt")
 
-(define text
-  (kill-quotes
-   (whitespace-crunch
-    (file->string source-path))))
+(define text (file->string source-path))
 
-;; run the analyses for a given "order"
-(define (build-hashes n)
-  (define count-hash (n-letter-kvcount n text))
-  (define tree-hash (kvcount->trans count-hash))
-  (define seed-tree (kvcount->seed-chooser count-hash))
-  (trees-hash->file tree-hash (build-path here
-                                          (format "~a-~a-tree-hash.js"
-                                                  abbrev n)))
-  (tree->file seed-tree (build-path here (format "~a-~a-seed-tree.js"
-                                                 abbrev n)))
-  (values count-hash tree-hash seed-tree))
+
 
 (define (run order)
-  (define-values (count-hash tree-hash seed-tree) (build-hashes order))
+  (define model  (build-model order text))
+  (define tree-hash (Model-trans model))
+  (define seed-tree  (Model-seed-chooser model))
+  (trees-hash->file tree-hash (build-path here
+                                          (format "~a-~a-tree-hash.js"
+                                                  abbrev order)))
+  (tree->file seed-tree (build-path here (format "~a-~a-seed-tree.js"
+                                                 abbrev order)))
   (cons (format "passwords of order ~a" order)
         (cons
          (sequence->string-pair
-          (generate-char-sequence/noseed seed-tree
-                                         (make-bools-list ENTROPY-BITS)
-                                         tree-hash))
+          (generate-char-sequence/noseed model (make-bools-list ENTROPY-BITS)))
          (for/list ([i 8])
            ;; strip off space:
            (substring (make-pwd-str/noseed seed-tree tree-hash) 1)))))

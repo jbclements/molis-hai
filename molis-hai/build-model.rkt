@@ -7,9 +7,22 @@
 (require "huffman-wrapper.rkt"
          "huffman.rkt")
 
-(provide (all-defined-out))
+(provide build-model)
 
 ;; SPECIFIC TO STRINGS AND CHARS:
+
+;; run the analyses for a given "order"
+(: build-model (Natural String -> (Model String Char)))
+(define (build-model n text)
+  (define cleaned-text
+    (kill-quotes
+     (whitespace-crunch
+      text)))
+  (: kvcount (KVCount String Char))
+  (define kvcount (n-letter-kvcount n cleaned-text))
+  (define tree-hash (kvcount->trans kvcount))
+  (define seed-tree (kvcount->seed-chooser kvcount))
+  (Model tree-hash seed-tree))
 
 ;; given a number of characters and a source text,
 ;; build a hash of the number of times each n-gram
