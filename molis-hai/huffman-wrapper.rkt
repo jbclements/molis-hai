@@ -2,17 +2,16 @@
 
 ;; Copyright 2015 John Clements <clements@racket-lang.org>
 
+;; this file defines functions to create and choose from huffman trees
+
+
 (require typed/rackunit
          "huffman.rkt")
 
 (provide count-hash->huff-tree
          pick-leaf
-         (struct-out Branch)
-         (struct-out Leaf))
-
-
-
-;; this file defines functions to create and choose from huffman trees
+         #;(struct-out Branch)
+         #;(struct-out Leaf))
 
 ;; given a "count-hash" mapping keys to naturals, return a
 ;; huffman tree for choosing those keys
@@ -50,7 +49,7 @@
 
 (let ()
   (define-type NumConsTree (U (cons NumConsTree NumConsTree) Number))
-  
+
   ;; convert a cons tree of numbers into a mytree with weights zero (for testing)
   (: num-cons-tree->mytree (NumConsTree -> (MyTree Number)))
   (define (num-cons-tree->mytree t)

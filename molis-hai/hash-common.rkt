@@ -1,12 +1,17 @@
-#lang racket
+#lang typed/racket
 
 ;; Copyright 2015 John Clements <clements@racket-lang.org>
 
-(require "bits-to-english.rkt")
+;; functions useful in building textual models
+
+(require "huffman-wrapper.rkt")
 
 (provide (all-defined-out))
 
+(define-type (CountHash K V) (HashTable K (HashTable V Natural)))
+
 ;; add a new sequence pair to a hash
+(: extend-hash (All (K V) ((CountHash K V) K V -> (CountHash K V))))
 (define (extend-hash h key value)
   (define follow-hash (hash-ref h key
                                 (lambda () (hash))))
@@ -24,6 +29,7 @@
                              (map cdr sub-hash-list)))))
 
 ;; convert a count hash to a hash table of huffman trees
+(: count-hash->trees (All (K V) ((CountHash K V) -> (HashTable K (MyTree V)))))
 (define (count-hash->trees count-hash)
   (for/hash ([(k v) (in-hash count-hash)])
     (values k (count-hash->huff-tree v))))
@@ -33,6 +39,9 @@
 ;; of huffman trees, generate a sequence of (cons thingy number),
 ;; where the number indicates how many bits of entropy were used for
 ;; each thingy.
+(: generate-sequence-from-bools
+   (All (S V)
+        ((S V -> S) S (Listof Boolean) (HashTable K (MyTree V)) -> (Listof V))))
 (define (generate-sequence-from-bools rotate seed bools tree-hash)
   (let loop ([chars seed]
              [bools bools])
@@ -46,6 +55,8 @@
 
 ;; given a count-hash, return a huffman tree for choosing a seed (an n-gram
 ;; starting with a space)
+(: count-hash->seed-chooser*
+   (All (K) ((K -> Boolean) (CountHash K V) -> (MyTree K))))
 (define (count-hash->seed-chooser* starts-with-space? count-hash)
   (define key-count-hash (count-hash->n-gram-counts count-hash))
   (define space-starters (for/hash ([(k v) (in-hash key-count-hash)]
@@ -55,6 +66,8 @@
 
 ;; given a count-hash, compute a raw count of each n-gram, to use 
 ;; in picking an initial seed
+(: count-hash->n-gram-counts
+   (All (K V) ((CountHash K V) (HashTable K Natural))))
 (define (count-hash->n-gram-counts count-hash)
   (for/hash ([(k v) (in-hash count-hash)])
     (values k (apply + (hash-values (hash-ref count-hash k))))))

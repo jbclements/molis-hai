@@ -7,7 +7,8 @@
 
 (require json
          rackunit
-         "bits-to-english.rkt"
+         "huffman-wrapper.rkt"
+         "huffman-serialize.rkt"
          "hash-common.rkt"
          "random-password.rkt"
          racket/contract
@@ -58,32 +59,15 @@
   (define the-jsexpr
     (for/hash ([(k v) (in-hash trees-hash)])
       (values (string->symbol k)
-              (huffman-tree->jsexpr v))))
+              (huffman-tree->jsexpr char->str v))))
   (jsexpr->file "TextModel" the-jsexpr filename))
 
 ;; serialize a single huffman tree to a file
 (define (tree->file tree filename)
-  (jsexpr->file "SeedModel" (huffman-tree->jsexpr tree) filename))
+  (jsexpr->file "SeedModel" (huffman-tree->jsexpr str->str tree) filename))
 
-;; translate a huffman tree to a jsexpr
-(define (huffman-tree->jsexpr tree)
-  (cond [(Branch? tree)
-         (hash 'a (huffman-tree->jsexpr (Branch-l tree))
-               'b (huffman-tree->jsexpr (Branch-r tree)))]
-        [else
-         (cond [(char? (Leaf-n tree)) (string (Leaf-n tree))]
-               [(string? (Leaf-n tree)) (Leaf-n tree)]
-               [else (error 'huffman-tree->jsexpr
-                            "expected tree containing only strings or chars, got a tree containing: ~e\n"
-                            (Leaf-n tree))])]))
-
-(check-equal? (huffman-tree->jsexpr (Branch 13 (Branch 13 (Leaf 13 #\a)
-                                                       (Leaf 13 #\b))
-                                            (Leaf 13 #\c)))
-              (hash 'a (hash 'a "a"
-                             'b "b")
-                    'b "c"))
-
+(define (str->str s) s)
+(define (char->str ch) (string ch))
 
 ;; crunch whitespace in a string
 (define (whitespace-crunch str)

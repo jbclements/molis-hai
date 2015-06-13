@@ -2,22 +2,22 @@
 
 ;; copyright 2015 John Clements <clements@racket-lang.org>
 
-(require typed/rackunit)
+;; Our Representation of Huffman Trees. They include weights,
+;; to allow constructions
 
 (provide (struct-out Leaf)
          (struct-out Branch)
          MyTree
          clump)
 
-
-
-;;; Our Representation of Huffman Trees. They include weights, to allow constructions
-
-(define-struct (T) Leaf ([wt : Natural] [n : T]) #:transparent)
-(define-struct (T) Branch ([wt : Natural] [l : (MyTree T)] [r : (MyTree T)]) #:transparent)
+(define-struct (T) Leaf ([wt : Natural]
+                         [n : T]) #:transparent)
+(define-struct (T) Branch ([wt : Natural]
+                           [l : (MyTree T)]
+                           [r : (MyTree T)])
+  #:transparent)
 
 (define-type (MyTree T) (U (Leaf T) (Branch T)))
-
 
 ;; keep clumping until we get one tree
 (: clump (All (T) ((Listof (MyTree T)) -> (MyTree T))))
@@ -45,19 +45,22 @@
 
 
 ;; TESTS
-
-
-
-(check-equal? (one-clump (list (Branch 13 (Leaf 2 14) (Leaf 11 1)) (Leaf 2 2) (Branch 0 (Leaf 0 3) (Leaf 0 4))))
-              (list (Branch 2 (Branch 0 (Leaf 0 3) (Leaf 0 4))
-                            (Leaf 2 2))
-                    (Branch 13 (Leaf 2 14) (Leaf 11 1))))
-
-(check-equal? (clump (list (Branch 13 (Leaf 2 14) (Leaf 11 1)) (Leaf 2 2) (Branch 0 (Leaf 0 3) (Leaf 0 4))))
-              (Branch 15
-                      (Branch 2 (Branch 0 (Leaf 0 3) (Leaf 0 4))
+(module+ test
+  (require typed/rackunit)
+  (check-equal? (one-clump (list (Branch 13 (Leaf 2 14) (Leaf 11 1))
+                                 (Leaf 2 2)
+                                 (Branch 0 (Leaf 0 3) (Leaf 0 4))))
+                (list (Branch 2 (Branch 0 (Leaf 0 3) (Leaf 0 4))
                               (Leaf 2 2))
                       (Branch 13 (Leaf 2 14) (Leaf 11 1))))
+
+  (check-equal? (clump (list (Branch 13 (Leaf 2 14) (Leaf 11 1))
+                             (Leaf 2 2)
+                             (Branch 0 (Leaf 0 3) (Leaf 0 4))))
+                (Branch 15
+                        (Branch 2 (Branch 0 (Leaf 0 3) (Leaf 0 4))
+                                (Leaf 2 2))
+                        (Branch 13 (Leaf 2 14) (Leaf 11 1)))))
 
 
 

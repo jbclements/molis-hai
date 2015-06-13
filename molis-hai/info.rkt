@@ -9,3 +9,9 @@
                            "bugfixes")))
 (define compile-omit-paths '("email-extraction"))
 
+(define raco-commands
+  (list
+   (list "molis-hai"
+         "cmd-line.rkt"
+         "generate secure passwords using a source text"
+         #f)))
