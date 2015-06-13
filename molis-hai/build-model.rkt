@@ -2,7 +2,7 @@
 
 ;; Copyright 2015 John Clements <clements@racket-lang.org>
 
-;; functions useful in building textual models
+;; transforming a text into a model
 
 (require "huffman-wrapper.rkt"
          "huffman.rkt")
@@ -43,10 +43,17 @@
 (define (kill-quotes str)
   (regexp-replace* #px"\"" str ""))
 
+(module+ test
+  (require typed/rackunit)
+  
+  (check-equal? (whitespace-crunch "  a \t\nbc de   ")
+                " a bc de ")
+  
+  (check-equal? (kill-quotes "the \"only\" way")
+                "the only way"))
+
 ;; GENERAL ACROSS ALL TYPES:
 
-;; represents a map from states to a huffman tree of transitions:
-(define-type (Model S T) (HashTable S (MyTree T)))
 ;; represents a map from states to counts of transitions
 (define-type (KVCount S T) (HashTable S (HashTable T Natural)))
 
@@ -62,34 +69,14 @@
   (hash-set h key new-hash))
 
 ;; convert a count hash to a hash table of huffman trees
-(: kvcount->model (All (K V) ((KVCount K V) -> (Model K V))))
-(define (kvcount->model count-hash)
-  #;(for/hash : (Model K V)
+(: kvcount->trans (All (K V) ((KVCount K V) -> (Trans K V))))
+(define (kvcount->trans count-hash)
+  #;(for/hash : (Trans K V)
     ([k : K (in-list (hash-keys count-hash))]
      (values k (count-hash->huff-tree (hash-ref count-hash k)))))
-  (for/hash : (Model K V)
+  (for/hash : (Trans K V)
     ([(k v) (in-hash count-hash)])
     (values k (count-hash->huff-tree v))))
-
-;; given a (state+transition->state) mapping
-;; and a seed (markov cell) and a list of booleans and a hash
-;; of huffman trees, generate a sequence of (cons thingy number),
-;; where the number indicates how many bits of entropy were used for
-;; each thingy.
-(: generate-sequence-from-bools
-   (All (S V)
-        ((S V -> S) S (Listof Boolean) (Model S V) ->
-                    (Listof (Pair V Natural)))))
-(define (generate-sequence-from-bools rotate seed bools tree-hash)
-  (let loop ([chars seed]
-             [bools bools])
-    (cond [(empty? bools) empty]
-          [else (match-define (cons next remaining)
-                  (pick-leaf (hash-ref tree-hash chars) bools))
-                (cons (cons next (ensure-nonnegative
-                                  (- (length bools) (length remaining))))
-                      (loop (rotate chars next)
-                            remaining))])))
 
 (: ensure-nonnegative (Integer -> Nonnegative-Integer))
 (define (ensure-nonnegative f)
@@ -119,8 +106,16 @@
     ([(k v) (in-hash count-hash)])
     (values k (apply + (hash-values (hash-ref count-hash k))))))
 
-;; make a list of random booleans of the specified length
-(: make-bools-list (Natural -> (Listof Boolean)))
-(define (make-bools-list len)
-  (for/list ([i len]) (= (random 2) 0)))
 
+
+;; given a "count-hash" mapping keys to naturals, return a
+;; huffman tree for choosing those keys
+(: count-hash->huff-tree (All (T) ((CountHash T) -> (MyTree T))))
+(define (count-hash->huff-tree letterhash)
+  (clump (count-hash->leafs letterhash)))
+
+;; given a letter-hash, convert it to a list of Leaf structures
+(: count-hash->leafs (All (T) ((CountHash T) -> (Listof (Leaf T)))))
+(define (count-hash->leafs letterhash)
+  (map (lambda: ([pr : (Pair T Natural)]) (Leaf (cdr pr) (car pr)))
+       (hash->list letterhash)))

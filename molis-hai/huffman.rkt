@@ -10,6 +10,7 @@
          MyTree
          clump)
 
+
 (define-struct (T) Leaf ([wt : Natural]
                          [n : T]) #:transparent)
 (define-struct (T) Branch ([wt : Natural]

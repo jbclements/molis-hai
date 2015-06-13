@@ -8,7 +8,8 @@
 (require json
          rackunit
          "huffman-wrapper.rkt"
-         "hash-common.rkt"
+         "build-model.rkt"
+         "use-model.rkt"
          "random-password.rkt"
          racket/contract
          racket/runtime-path
@@ -60,28 +61,12 @@
 (define (char->str ch) (string ch))
 
 
-(check-equal? (whitespace-crunch "  a \t\nbc de   ")
-              " a bc de ")
-
-;; remove all quotes from a string
-(define (kill-quotes str)
-  (regexp-replace* #px"\"" str ""))
-
-(check-equal? (kill-quotes "the \"only\" way")
-              "the only way")
 
 ;; given a string and a character, add the char to the end and drop the first
 (define (string-rotate str chr)
   (string-append (substring str 1) (string chr)))
 
-;; given a count-hash, return a huffman tree for choosing a seed (an n-gram
-;; starting with a space)
-(define (count-hash->seed-chooser count-hash)
-  (kvcount->seed-chooser* starts-with-space? count-hash))
 
-;; does this string start with a space?
-(define (starts-with-space? str)
-  (equal? (string-ref str 0) #\space))
 
 ;; given a seed, a list of bools, and a tree-hash, generate a sequence
 ;; of (cons leaf bits-used)
@@ -163,9 +148,9 @@
 
 ;; run the analyses for a given "order"
 (define (build-hashes n)
-  (define count-hash (n-letter-count-hash n text))
-  (define tree-hash (kvcount->model count-hash))
-  (define seed-tree (count-hash->seed-chooser count-hash))
+  (define count-hash (n-letter-kvcount n text))
+  (define tree-hash (kvcount->trans count-hash))
+  (define seed-tree (kvcount->seed-chooser count-hash))
   (trees-hash->file tree-hash (build-path here
                                           (format "~a-~a-tree-hash.js"
                                                   abbrev n)))
