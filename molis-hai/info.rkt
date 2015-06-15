@@ -7,7 +7,7 @@
 #;(define version "2015-10-13-12:44")
 #;(define release-notes '((p "improved windows host api handling, "
                            "bugfixes")))
-(define compile-omit-paths '("text-processing"))
+(define compile-omit-paths '("experimental"))
 
 (define raco-commands
   (list
