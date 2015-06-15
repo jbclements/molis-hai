@@ -2,26 +2,17 @@
 
 ;; Copyright 2015 John Clements <clements@racket-lang.org>
 
-;; this file defines functions to create and choose from huffman trees
-
+;; this file contains functions for converting huffman trees to and from jsexprs
 
 (require typed/rackunit
          "huffman.rkt"
          racket/match)
 
 (provide jsexpr->huffman-tree
-         huffman-tree->jsexpr
-         (struct-out Model)
-         CountHash
-         Trans)
+         huffman-tree->jsexpr)
 
-;; a model contains a Trans and a seed-choser
-(define-struct (S T) Model ([trans : (Trans S T)] [seed-chooser : (MyTree S)]))
 
-;; represents a map from states to a huffman tree of transitions:
-(define-type (Trans S T) (HashTable S (MyTree T)))
 
-(define-type (CountHash K) (HashTable K Natural))
 
 
 

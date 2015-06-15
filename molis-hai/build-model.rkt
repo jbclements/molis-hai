@@ -4,75 +4,34 @@
 
 ;; transforming a text into a model
 
-(require "huffman-wrapper.rkt"
+(require "shared-types.rkt"
          "huffman.rkt")
 
-(provide build-model)
+(provide kvcount-new
+         kvcount-extend
+         kvcount->model
+         KVCount)
 
-;; SPECIFIC TO STRINGS AND CHARS:
-
-;; run the analyses for a given "order"
-(: build-model (Natural String -> (Model String Char)))
-(define (build-model n text)
-  (define cleaned-text
-    (kill-quotes
-     (whitespace-crunch
-      text)))
-  (: kvcount (KVCount String Char))
-  (define kvcount (n-letter-kvcount n cleaned-text))
-  (define tree-hash (kvcount->trans kvcount))
-  (define seed-tree (kvcount->seed-chooser kvcount))
-  (Model tree-hash seed-tree))
-
-;; given a number of characters and a source text,
-;; build a hash of the number of times each n-gram
-;; transitions to a given letter
-(: n-letter-kvcount (Natural String -> (KVCount String Char)))
-(define (n-letter-kvcount n text)
-  (for/fold ([h : (KVCount String Char) (hash)])
-            ([i (in-range (- (string-length text) n))])
-    (extend-hash h (substring text i (+ i n))
-                 (string-ref text (+ i n)))))
-
-;; given a count-hash, return a huffman tree for choosing a seed (an n-gram
-;; starting with a space)
-(: kvcount->seed-chooser ((KVCount String Char) -> (MyTree String)))
-(define (kvcount->seed-chooser count-hash)
-  (kvcount->seed-chooser* starts-with-space? count-hash))
-
-;; does this string start with a space?
-(: starts-with-space? (String -> Boolean))
-(define (starts-with-space? str)
-  (equal? (string-ref str 0) #\space))
-
-
-;; crunch whitespace in a string
-(: whitespace-crunch (String -> String))
-(define (whitespace-crunch str)
-  (regexp-replace* #px"[ \t\r\n]+" str " "))
-
-;; remove all quotes from a string
-(: kill-quotes (String -> String))
-(define (kill-quotes str)
-  (regexp-replace* #px"\"" str ""))
-
-(module+ test
-  (require typed/rackunit)
-  
-  (check-equal? (whitespace-crunch "  a \t\nbc de   ")
-                " a bc de ")
-  
-  (check-equal? (kill-quotes "the \"only\" way")
-                "the only way"))
 
 ;; GENERAL ACROSS ALL TYPES:
 
 ;; represents a map from states to counts of transitions
 (define-type (KVCount S T) (HashTable S (HashTable T Natural)))
 
+;; make a fresh kvcount (it's just a blank hash)
+(: kvcount-new (All (K V) (-> (KVCount K V))))
+(define (kvcount-new)
+  (hash))
+
+;; convert a kvcount to a model
+(: kvcount->model (All (K V) ((KVCount K V) (K -> Boolean) -> (Model K V))))
+(define (kvcount->model kvc good-key?)
+  (Model (kvcount->trans kvc)
+         (kvcount->seed-chooser* good-key? kvc)))
+
 ;; add a new sequence pair to a hash
-(: extend-hash (All (K V) ((KVCount K V) K V -> (KVCount K V))))
-(define (extend-hash h key value)
+(: kvcount-extend (All (K V) ((KVCount K V) K V -> (KVCount K V))))
+(define (kvcount-extend h key value)
   (: follow-hash (HashTable V Natural))
   (define follow-hash (hash-ref h key
                                 (lambda () (ann (hash) (HashTable V Natural)))))

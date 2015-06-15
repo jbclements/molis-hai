@@ -1,16 +1,16 @@
 #lang racket
 
+
 (require rackunit
-         "hash-common.rkt"
          racket/runtime-path
+         "use-model.rkt"
+         "word-model.rkt"
          #;parsack)
 
 
 (define-runtime-path here ".")
 
 (define text (file->string (build-path here "a-tale-of-two-cities.txt")))
-
-
 
 (define punct-chars
   (string->list ",;:\"_"))
@@ -50,31 +50,20 @@
   (cond [(regexp-match #px"[ \n\t]+" t) #" "]
         [else t])))
 
-;; given a number of characters and a source text,
-;; build a hash of the number of times each n-gram
-;; transitions to a given letter
-(define (n-word-count-hash n text)
-  (define first-word (first text))
-  (let loop ([h (hash)] [remaining text] [subremaining (drop text n)])
-    (cond [(empty? subremaining)
-           (extend-hash h remaining first-word)]
-          [else
-           (loop (extend-hash h (take remaining n) (first subremaining))
-                 (rest remaining)
-                 (rest subremaining))])))
 
-(define count-2-hash (n-word-count-hash 2 standard-tokens))
-(define tree-2-hash (count-hash->trees count-2-hash))
+(define model-2 (build-word-model 2 standard-tokens))
 
-(define count-3-hash (n-word-count-hash 3 standard-tokens))
-(define tree-3-hash (count-hash->trees count-3-hash))
+(define model-3 (build-word-model 3 standard-tokens))
 
 (define (list-rotate l n)
   (append (rest l) (list n)))
 
 (define ENTROPY-BITS 56)
 
-(define (make-pwd-str seed tree-hash)
+(define (make-pwd-str model)
+  (generate list-rotate
+            model
+            (make-bools-list ENTROPY-BITS))
   (apply
    bytes-append
    (append

@@ -1,19 +1,33 @@
+
 #lang typed/racket
 
 ;; Copyright 2015 John Clements <clements@racket-lang.org>
 
 ;; generating text using a model
 
-(require "huffman-wrapper.rkt"
+(require "shared-types.rkt"
          "huffman.rkt"
          typed/rackunit)
 
-(provide generate/char
-         #;generate-char-sequence
+(provide generate-pwd
+         generate/char
+         generated->sequence
          generate
          generate-sequence
-         make-bools-list
-         #;pick-leaf)
+         make-bools-list)
+
+
+;; given a model and a number of bits of entropy, generate a password
+(: generate-pwd ((Model String Char) Natural -> String))
+(define (generate-pwd model num-bits)
+  (generated->string
+   (generate/char model (make-bools-list num-bits))))
+
+;; make a list of random booleans of the specified length
+(: make-bools-list (Natural -> (Listof Boolean)))
+(define (make-bools-list len)
+  (for/list ([i len]) (= (random 2) 0)))
+
 
 
 ;; represents a generated sequence, including the chosen initial state
@@ -23,40 +37,17 @@
                                 [sequence : (Listof (List T Natural))]))
 
 
-;; convert a generated to a sequence
-(: generated->sequence (All (S T U)
-                            ((Generated S T) (S -> (Listof U)) (T -> (Listof U))
-                                             -> (Listof U))))
-(define (generated->sequence g seed-conv trans-conv)
-  (append*
-   (cons (seed-conv (Generated-init-state))
-         (map trans-conv (Generated-sequence g)))))
-
-
-;; given a seed (markov cell) and a list of booleans and a hash
-;; of huffman trees, generate a string
-(: generate-string-from-bools (String (Listof Boolean) (Trans String Char) -> String))
-(define (generate-string-from-bools seed bools tree-hash)
-  (string-append
-   seed
-   (list->string
-    (map (ann car ((Pair Char Natural) -> Char))
-         (generate-char-sequence-from-bools seed bools tree-hash)))))
+(: generated->string ((Generated String Char) -> String))
+(define (generated->string g)
+  (list->string
+   (generated->sequence g string->list (lambda ([ch : Char]) (list ch)))))
 
 ;; given a seed tree, a list of bools and a tree-hash, generate a sequence
 ;; of (cons leaf bits-used)
 (: generate/char
-   ((Model String Char) (Listof Boolean) -> (Listof (Pair Char Natural))))
+   ((Model String Char) (Listof Boolean) -> (Generated String Char)))
 (define (generate/char model bits)
   (generate model bits string-rotate))
-
-
-;; given a seed, a list of bools, and a tree-hash, generate a sequence
-;; of (cons leaf bits-used)
-(: generate-char-sequence-from-bools
-   (String (Listof Boolean) (Trans String Char) -> (Listof (Pair Char Natural))))
-(define (generate-char-sequence-from-bools seed bools tree-hash)
-  (generate-sequence string-rotate seed bools tree-hash))
 
 ;; given a string and a character, add the char to the end and drop the first
 (: string-rotate : (String Char -> String))
@@ -65,9 +56,20 @@
 
 ;; All Abstract S & V below here...
 
+;; convert a generated to a sequence
+(: generated->sequence (All (S T U)
+                            ((Generated S T) (S -> (Listof U)) (T -> (Listof U))
+                                             -> (Listof U))))
+(define (generated->sequence g seed-conv trans-conv)
+  (append*
+   (cons (seed-conv (car (Generated-init-state g)))
+         (map trans-conv (map (ann car ((List T Natural) -> T))
+                              (Generated-sequence g))))))
+
 ;; given a model and a list of booleans and a transition function, generate a seed and
 ;; a sequence of transitions
-(: generate ((Model S V) (Listof Boolean) (S V -> S) -> (Generated S V)))
+(: generate (All (S V)
+                 ((Model S V) (Listof Boolean) (S V -> S) -> (Generated S V))))
 (define (generate model bools t-fun)
   (define-values (seed used-bits bits-left) (pick-leaf (Model-seed-chooser model) bools))
   (define seq (generate-sequence t-fun seed bits-left (Model-trans model)))
@@ -81,14 +83,14 @@
 (: generate-sequence
    (All (S V)
         ((S V -> S) S (Listof Boolean) (Trans S V) ->
-                    (Listof (Pair V Natural)))))
+                    (Listof (List V Natural)))))
 (define (generate-sequence rotate seed bools tree-hash)
   (let loop ([chars seed]
              [bools bools])
     (cond [(empty? bools) empty]
           [else (define-values (next used-bits remaining)
                   (pick-leaf (hash-ref tree-hash chars) bools))
-                (cons (cons next used-bits)
+                (cons (list next used-bits)
                       (loop (rotate chars next)
                             remaining))])))
 
@@ -97,13 +99,7 @@
   (cond [(< f 0) (error 'ensure-nonnegative "expected positive number, got: ~v" f)]
         [else f]))
 
-
-;; make a list of random booleans of the specified length
-(: make-bools-list (Natural -> (Listof Boolean)))
-(define (make-bools-list len)
-  (for/list ([i len]) (= (random 2) 0)))
-
-;; GENERIC
+;; GENERIC FUNCTIONS ON HUFFMAN TREES
 
 ;; given a decision tree and a boolean generator,
 ;; return a leaf and the number of bits used and the remaining bools

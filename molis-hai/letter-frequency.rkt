@@ -8,8 +8,9 @@
 (require json
          rackunit
          "huffman-wrapper.rkt"
-         "build-model.rkt"
+         "char-model.rkt"
          "use-model.rkt"
+         "json-read-write.rkt"
          "random-password.rkt"
          racket/contract
          racket/runtime-path
@@ -33,53 +34,26 @@
 
 (define-runtime-path here ".")
 
-;; write a jsexpr to a js file so it can be loaded in javascript
-(define (write-jsexpr top-level-varname jsexpr port)
-  (fprintf port "~a = \n" top-level-varname)
-  (write-json jsexpr port)
-  (display ";\n" port))
-
-;; write a jsexpr to a js file so it can be loaded in js
-(define (jsexpr->file top-level-varname jsexpr filename)
-  (call-with-output-file filename
-    #:exists 'truncate
-    (lambda (port) (write-jsexpr top-level-varname jsexpr port))))
-
-;; serialize a tree-hash to a file
-(define (trees-hash->file trees-hash filename)
-  (define the-jsexpr
-    (for/hash ([(k v) (in-hash trees-hash)])
-      (values (string->symbol k)
-              (huffman-tree->jsexpr char->str v))))
-  (jsexpr->file "TextModel" the-jsexpr filename))
-
-;; serialize a single huffman tree to a file
-(define (tree->file tree filename)
-  (jsexpr->file "SeedModel" (huffman-tree->jsexpr str->str tree) filename))
-
-(define (str->str s) s)
-(define (char->str ch) (string ch))
 
 
 #;(generate-string "ot" dist-2-hash)
 
 (define ENTROPY-BITS 56)
 
-;; generate a password string, using a seed chosen from the tree-hash
-(define (make-pwd-str/noseed model)
-  (sequence->string
-   (generate-char-sequence/noseed model (make-bools-list ENTROPY-BITS))))
+
 
 ;; generate a password string with the required number of bits of entropy
-(define (make-pwd-str seed tree-hash)
+#;(define (make-pwd-str seed tree-hash)
   (string-append
    seed
    (sequence->string
     (generate-char-sequence-from-bools seed (make-bools-list ENTROPY-BITS)
                                        tree-hash))))
 
-;; given a pair
-(define (sequence->string-pair seq)
+;; given a generated, flatten it into two strings, one with the chars, one with
+;; the number of bits of entropy at each choice.
+#;(define (generated->string-pair g)
+  (generated->sequence g (lambda (str) ))
   (when (for/or ([count (map cdr seq)])
           (not (< count 16)))
     (raise-argument-error 'sequence->string-pair 
@@ -108,21 +82,16 @@
 
 
 (define (run order)
-  (define model  (build-model order text))
-  (define tree-hash (Model-trans model))
-  (define seed-tree  (Model-seed-chooser model))
-  (trees-hash->file tree-hash (build-path here
-                                          (format "~a-~a-tree-hash.js"
-                                                  abbrev order)))
-  (tree->file seed-tree (build-path here (format "~a-~a-seed-tree.js"
-                                                 abbrev order)))
+  (define model  (time (build-char-model order text)))
+  (model-write model (build-path "/tmp/" (format "~a-~a-model.js" abbrev order)))
   (cons (format "passwords of order ~a" order)
-        (cons
-         (sequence->string-pair
-          (generate-char-sequence/noseed model (make-bools-list ENTROPY-BITS)))
-         (for/list ([i 8])
+        (for/list ([i 8])
            ;; strip off space:
-           (substring (make-pwd-str/noseed model) 1)))))
+           (substring (generate-pwd model ENTROPY-BITS) 1))
+        #;(cons
+         #;(sequence->string-pair
+          (generate/char model (make-bools-list ENTROPY-BITS)))
+         )))
 
 
 (random-seed 2722197)
