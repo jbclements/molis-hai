@@ -31,12 +31,12 @@
                  (rest subremaining))])))
 
 
-(: generate-word-pwd ((Model (Listof String) String) Natural -> String))
-(define (generate-word-pwd model num-bits)
+(: generate-word-pwd ((Model (Listof String) String) (Listof Boolean) -> String))
+(define (generate-word-pwd model bools)
   (string-append*
    (generated->sequence
     (generate model
-              (make-bools-list num-bits)
+              bools
               list-rotate)
     seed-conv
     trans-conv)))

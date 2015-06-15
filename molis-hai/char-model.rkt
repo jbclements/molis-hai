@@ -62,19 +62,10 @@
 ;;; USING the model
 
 ;; given a model and a number of bits of entropy, generate a password
-(: generate-char-pwd ((Model String Char) Natural -> String))
-(define (generate-char-pwd model num-bits)
+(: generate-char-pwd ((Model String Char) (Listof Boolean) -> String))
+(define (generate-char-pwd model bools)
   (generated->string
-   (generate/char model (make-bools-list num-bits))))
-
-;; NOT CRYPTOGRAPHICALLY SECURE:
-
-;; make a list of random booleans of the specified length
-(: make-bools-list (Natural -> (Listof Boolean)))
-(define (make-bools-list len)
-  (for/list ([i len]) (= (random 2) 0)))
-
-
+   (generate/char model bools)))
 
 (: generated->string ((Generated String Char) -> String))
 (define (generated->string g)

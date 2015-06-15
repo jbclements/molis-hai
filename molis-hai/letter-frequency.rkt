@@ -13,6 +13,7 @@
          "use-model.rkt"
          "json-read-write.rkt"
          "random-password.rkt"
+         "random-bits.rkt"
          racket/contract
          racket/runtime-path
          (only-in racket/file file->string))
@@ -41,15 +42,6 @@
 
 (define ENTROPY-BITS 56)
 
-
-
-;; generate a password string with the required number of bits of entropy
-#;(define (make-pwd-str seed tree-hash)
-  (string-append
-   seed
-   (sequence->string
-    (generate-char-sequence-from-bools seed (make-bools-list ENTROPY-BITS)
-                                       tree-hash))))
 
 ;; given a generated, flatten it into two strings, one with the chars, one with
 ;; the number of bits of entropy at each choice.
@@ -88,10 +80,10 @@
   (cons (format "passwords of order ~a" order)
         (for/list ([i 8])
            ;; strip off space:
-          (substring (generate-char-pwd model ENTROPY-BITS) 1))
+          (substring (generate-char-pwd model (random-bool-list ENTROPY-BITS)) 1))
         #;(cons
          #;(sequence->string-pair
-          (generate/char model (make-bools-list ENTROPY-BITS)))
+          (generate/char model (random-bool-list ENTROPY-BITS)))
          )))
 
 
@@ -125,12 +117,6 @@
 ;; with seed randomization: 19.1 (!)
 
 #;(+ 19 623/625)
-
-#;(sequence->string-pair
- (generate-char-sequence-from-bools "T" (make-bools-list ENTROPY-BITS) tree-hash-1))
-
-#;(sequence->string-pair
- (generate-char-sequence-from-bools "Th" (make-bools-list ENTROPY-BITS) tree-hash-2))
 
 #;(for/list ([i 8])
   (make-pwd-str/noseed seed-tree-2 tree-hash-2))

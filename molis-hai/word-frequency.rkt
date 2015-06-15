@@ -5,6 +5,7 @@
          racket/runtime-path
          "use-model.rkt"
          "word-model.rkt"
+         "random-bits.rkt"
          #;parsack)
 
 
@@ -58,6 +59,6 @@
 (define ENTROPY-BITS 56)
 
 (for/list ([i 8])
-  (generate-word-pwd model-3 ENTROPY-BITS))
+  (generate-word-pwd model-3 (random-bool-list ENTROPY-BITS)))
 
 
