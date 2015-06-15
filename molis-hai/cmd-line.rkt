@@ -1,28 +1,45 @@
-#lang racket/base
+#lang typed/racket/base
 
 (require racket/runtime-path
          "char-model.rkt"
          "random-bits.rkt"
-         raco/command-name
          racket/cmdline
          racket/file
-         racket/match)
+         racket/match
+         )
+
+(require/typed raco/command-name
+               [short-program+command-name (-> String)])
 
 (define-runtime-path here ".")
 
+(: entropy-bits (Parameterof Natural))
 (define entropy-bits (make-parameter 56))
+
+(: num-pwds (Parameterof Natural))
 (define num-pwds (make-parameter 1))
+
+(: model-order (Parameterof Natural))
 (define model-order (make-parameter 2))
 
+(: set-numeric-parameter-from-string
+   ((Parameterof Natural) Any Symbol Natural -> Void))
 (define (set-numeric-parameter-from-string param str name limit)
-  (match (string->number str)
-    [(? number? n) (cond [(<= 0 n limit) (param n)]
-                         [else
-                          (raise-argument-error
-                           name
-                           (format "number in range 0..~a" limit)
-                           0 n)])]
-    [else (raise-argument-error name "number" 0 str)]))
+  (cond
+    [(string? str)
+     (match (string->number str)
+       [(? natural? n) (cond [(<= 0 n limit) (param n)]
+                             [else
+                              (raise-argument-error
+                               name
+                               (format "number in range 0..~a" limit)
+                               0 n)])]
+       [else (raise-argument-error name "number" 0 str)])]
+    [else
+     (raise-argument-error 'set-numeric-parameter-from-string
+                           "String" 1 param str name limit)]))
+
+(define-predicate natural? Nonnegative-Integer)
 
 (command-line
  #:program (short-program+command-name)
