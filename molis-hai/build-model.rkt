@@ -27,7 +27,7 @@
 (: kvcount->model (All (K V) ((KVCount K V) (K -> Boolean) -> (Model K V))))
 (define (kvcount->model kvc good-key?)
   (Model (kvcount->trans kvc)
-         (kvcount->seed-chooser* good-key? kvc)))
+         (kvcount->seed-chooser good-key? kvc)))
 
 ;; add a new sequence pair to a hash
 (: kvcount-extend (All (K V) ((KVCount K V) K V -> (KVCount K V))))
@@ -43,12 +43,24 @@
 ;; convert a count hash to a hash table of huffman trees
 (: kvcount->trans (All (K V) ((KVCount K V) -> (Trans K V))))
 (define (kvcount->trans count-hash)
-  #;(for/hash : (Trans K V)
-    ([k : K (in-list (hash-keys count-hash))]
-     (values k (count-hash->huff-tree (hash-ref count-hash k)))))
+  (check-branching count-hash)
   (for/hash : (Trans K V)
     ([(k v) (in-hash count-hash)])
     (values k (count-hash->huff-tree v))))
+
+;; a count-hash where each key leads to exactly one model
+;; will only generate passwords of infinite length. Check
+;; for this and signal an error
+(: check-branching (All (K V) ((KVCount K V) -> Void)))
+(define (check-branching count-hash)
+  (: at-least-one-branch? Boolean)
+  (define at-least-one-branch?
+    (for/or ([(k v) (in-hash count-hash)])
+      (< 1 (hash-count v))))
+  (unless at-least-one-branch?
+    (raise-argument-error 'check-branching
+                          "source text with at least one choice"
+                          0 count-hash)))
 
 (: ensure-nonnegative (Integer -> Nonnegative-Integer))
 (define (ensure-nonnegative f)
@@ -57,9 +69,9 @@
 
 ;; given a count-hash, return a huffman tree for choosing a seed (an n-gram
 ;; starting with a space)
-(: kvcount->seed-chooser*
+(: kvcount->seed-chooser
    (All (K V) ((K -> Boolean) (KVCount K V) -> (MyTree K))))
-(define (kvcount->seed-chooser* good-key? count-hash)
+(define (kvcount->seed-chooser good-key? count-hash)
   (: key-count-hash (CountHash K))
   (define key-count-hash (kvcount->n-gram-counts count-hash))
   (: space-starters (CountHash K))
@@ -67,7 +79,10 @@
                            ([(k v) (in-hash key-count-hash)]
                                     #:when (good-key? k))
                            (values k (ensure-nonnegative v))))
-  (count-hash->huff-tree space-starters))
+  (cond [(empty? (hash-keys space-starters))
+         (error 'kvcount->seed-chooser "seeding criterion selected no states as possible starting states")]
+        [else
+         (count-hash->huff-tree space-starters)]))
 
 ;; given a count-hash, compute a raw count of each n-gram, to use 
 ;; in picking an initial seed
@@ -91,3 +106,18 @@
 (define (count-hash->leafs letterhash)
   (map (lambda: ([pr : (Pair T Natural)]) (Leaf (cdr pr) (car pr)))
        (hash->list letterhash)))
+
+(module* test typed/racket
+
+  (require (submod "..")
+           typed/rackunit)
+
+  (check-exn
+   #px"source text with at least one choice"
+   (lambda () (kvcount->model (ann
+                               (hash 'a (ann (hash 'b 3)
+                                             (HashTable Symbol Natural))
+                                     'b (ann (hash 'a 9)
+                                             (HashTable Symbol Natural)))
+                               (KVCount Symbol Symbol))
+                              (lambda (x) #t)))))

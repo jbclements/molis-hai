@@ -22,6 +22,10 @@
 (: model-order (Parameterof Natural))
 (define model-order (make-parameter 2))
 
+(: source-text (Parameterof Path-String))
+(define source-text
+  (make-parameter (build-path here "a-tale-of-two-cities.txt")))
+
 (: set-numeric-parameter-from-string
    ((Parameterof Natural) Any Symbol Natural -> Void))
 (define (set-numeric-parameter-from-string param str name limit)
@@ -39,24 +43,43 @@
      (raise-argument-error 'set-numeric-parameter-from-string
                            "String" 1 param str name limit)]))
 
+;; set the source text (if the file exists)
+(: set-source-text (Any -> Void))
+(define (set-source-text path)
+  (cond
+    [(string? path)
+     (cond [(file-exists? path)
+            (source-text path)]
+           [else
+            (raise-argument-error
+             'set-source-text
+             "path of existing file"
+             0 path)])]
+    [else
+     (raise-argument-error 'set-source-text
+                           "String" 1 path)]))
+
 (define-predicate natural? Nonnegative-Integer)
 
 (command-line
  #:program (short-program+command-name)
  #:once-each
- [("-b" "--bits") bits "Specify number of bits of entropy"
+ [("-b" "--bits") bits "Number of bits of entropy"
                   (set-numeric-parameter-from-string
                    entropy-bits bits 'set-entropy-bits 500)]
- [("-n" "--passwords") pwds "Specify number of passwords generated"
+ [("-n" "--passwords") pwds "Number of passwords generated"
                        (set-numeric-parameter-from-string
                         num-pwds pwds 'set-num-pwds 100)]
- [("-o" "--model-order") order "Specify the order of the model"
+ [("-o" "--model-order") order "Order of the model"
                          (set-numeric-parameter-from-string
-                          model-order order 'set-model-order 10)])
+                          model-order order 'set-model-order 10)]
+ [("-t" "--source-text") source-text "Source text corpus"
+                         (set-source-text source-text)])
 
 (define atotc-path (build-path here "a-tale-of-two-cities.txt"))
 
-(define model (build-char-model (model-order) (file->string atotc-path)))
+(define model (build-char-model (model-order)
+                                (file->string (source-text))))
 
 (for ([i (in-range (num-pwds))])
   (display (substring (generate-char-pwd model
