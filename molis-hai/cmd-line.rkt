@@ -12,30 +12,34 @@
 
 (define entropy-bits (make-parameter 56))
 (define num-pwds (make-parameter 1))
+(define model-order (make-parameter 2))
 
-;; given a string, set the number of bits
-(define (set-entropy-bits bits-str)
-  (match (string->number bits-str)
-    [(? number? n) (entropy-bits n)]
-    [else (raise-argument-error 'set-entropy-bits "number" 0 bits-str)]))
-
-;; given a string, set the number of bits
-(define (set-num-pwds n-str)
-  (match (string->number n-str)
-    [(? number? n) (num-pwds n)]
-    [else (raise-argument-error 'set-num-pwds "number" 0 n-str)]))
+(define (set-numeric-parameter-from-string param str name limit)
+  (match (string->number str)
+    [(? number? n) (cond [(<= 0 n limit) (param n)]
+                         [else
+                          (raise-argument-error
+                           name
+                           (format "number in range 0..~a" limit)
+                           0 n)])]
+    [else (raise-argument-error name "number" 0 str)]))
 
 (command-line
  #:program (short-program+command-name)
  #:once-each
- [("-b" "--bits") bits-str "Specify number of bits of entropy"
-                  (set-entropy-bits bits-str)]
- [("-n" "--passwords") num-str "Specify number of passwords generated"
-                       (set-num-pwds num-str)])
+ [("-b" "--bits") str "Specify number of bits of entropy"
+                  (set-numeric-parameter-from-string
+                   entropy-bits str 'set-entropy-bits 500)]
+ [("-n" "--passwords") str "Specify number of passwords generated"
+                       (set-numeric-parameter-from-string
+                        num-pwds str 'set-num-pwds 100)]
+ [("-o" "--model-order") str "Specify the order of the model"
+                         (set-numeric-parameter-from-string
+                          model-order str 'set-model-order 10)])
 
 (define atotc-path (build-path here "a-tale-of-two-cities.txt"))
 
-(define model (build-char-model 2 (file->string atotc-path)))
+(define model (build-char-model (model-order) (file->string atotc-path)))
 
 (for ([i (in-range (num-pwds))])
   (display (substring (generate-char-pwd model
