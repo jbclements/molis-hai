@@ -9,26 +9,10 @@
          "huffman.rkt"
          typed/rackunit)
 
-(provide generate-pwd
-         generate/char
+(provide (struct-out Generated)
          generated->sequence
          generate
-         generate-sequence
-         make-bools-list)
-
-
-;; given a model and a number of bits of entropy, generate a password
-(: generate-pwd ((Model String Char) Natural -> String))
-(define (generate-pwd model num-bits)
-  (generated->string
-   (generate/char model (make-bools-list num-bits))))
-
-;; make a list of random booleans of the specified length
-(: make-bools-list (Natural -> (Listof Boolean)))
-(define (make-bools-list len)
-  (for/list ([i len]) (= (random 2) 0)))
-
-
+         generate-sequence)
 
 ;; represents a generated sequence, including the chosen initial state
 ;; and the sequence of transitions. Each is accompanied by the number
@@ -36,25 +20,6 @@
 (define-struct (S T) Generated ([init-state : (List S Natural)]
                                 [sequence : (Listof (List T Natural))]))
 
-
-(: generated->string ((Generated String Char) -> String))
-(define (generated->string g)
-  (list->string
-   (generated->sequence g string->list (lambda ([ch : Char]) (list ch)))))
-
-;; given a seed tree, a list of bools and a tree-hash, generate a sequence
-;; of (cons leaf bits-used)
-(: generate/char
-   ((Model String Char) (Listof Boolean) -> (Generated String Char)))
-(define (generate/char model bits)
-  (generate model bits string-rotate))
-
-;; given a string and a character, add the char to the end and drop the first
-(: string-rotate : (String Char -> String))
-(define (string-rotate str chr)
-  (string-append (substring str 1) (string chr)))
-
-;; All Abstract S & V below here...
 
 ;; convert a generated to a sequence
 (: generated->sequence (All (S T U)

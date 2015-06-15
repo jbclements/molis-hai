@@ -3,9 +3,13 @@
 ;; the char-based model
 
 (require "shared-types.rkt"
-         "build-model.rkt")
+         "build-model.rkt"
+         "use-model.rkt")
 
-(provide build-char-model)
+(provide build-char-model
+         generate-char-pwd
+         generate/char)
+         
 
 ;; run the analyses for a given "order"
 (: build-char-model (Natural String -> (Model String Char)))
@@ -53,3 +57,38 @@
   
   (check-equal? (kill-quotes "the \"only\" way")
                 "the only way"))
+
+
+;;; USING the model
+
+;; given a model and a number of bits of entropy, generate a password
+(: generate-char-pwd ((Model String Char) Natural -> String))
+(define (generate-char-pwd model num-bits)
+  (generated->string
+   (generate/char model (make-bools-list num-bits))))
+
+;; NOT CRYPTOGRAPHICALLY SECURE:
+
+;; make a list of random booleans of the specified length
+(: make-bools-list (Natural -> (Listof Boolean)))
+(define (make-bools-list len)
+  (for/list ([i len]) (= (random 2) 0)))
+
+
+
+(: generated->string ((Generated String Char) -> String))
+(define (generated->string g)
+  (list->string
+   (generated->sequence g string->list (lambda ([ch : Char]) (list ch)))))
+
+;; given a seed tree, a list of bools and a tree-hash, generate a sequence
+;; of (cons leaf bits-used)
+(: generate/char
+   ((Model String Char) (Listof Boolean) -> (Generated String Char)))
+(define (generate/char model bits)
+  (generate model bits string-rotate))
+
+;; given a string and a character, add the char to the end and drop the first
+(: string-rotate : (String Char -> String))
+(define (string-rotate str chr)
+  (string-append (substring str 1) (string chr)))

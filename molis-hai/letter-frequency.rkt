@@ -7,7 +7,8 @@
 
 (require json
          rackunit
-         "huffman-wrapper.rkt"
+         "shared-types.rkt"
+         "huffman-convert.rkt"
          "char-model.rkt"
          "use-model.rkt"
          "json-read-write.rkt"
@@ -87,7 +88,7 @@
   (cons (format "passwords of order ~a" order)
         (for/list ([i 8])
            ;; strip off space:
-           (substring (generate-pwd model ENTROPY-BITS) 1))
+          (substring (generate-char-pwd model ENTROPY-BITS) 1))
         #;(cons
          #;(sequence->string-pair
           (generate/char model (make-bools-list ENTROPY-BITS)))

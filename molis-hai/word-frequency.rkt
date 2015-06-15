@@ -47,35 +47,17 @@
 
 (define standard-tokens
 (for/list ([t (in-list tokens)])
-  (cond [(regexp-match #px"[ \n\t]+" t) #" "]
-        [else t])))
+  (cond [(regexp-match #px"[ \n\t]+" t) " "]
+        [else (bytes->string/utf-8 t)])))
 
 
-(define model-2 (build-word-model 2 standard-tokens))
+(define model-2 (time (build-word-model 2 standard-tokens)))
 
-(define model-3 (build-word-model 3 standard-tokens))
-
-(define (list-rotate l n)
-  (append (rest l) (list n)))
+(define model-3 (time (build-word-model 3 standard-tokens)))
 
 (define ENTROPY-BITS 56)
 
-(define (make-pwd-str model)
-  (generate list-rotate
-            model
-            (make-bools-list ENTROPY-BITS))
-  (apply
-   bytes-append
-   (append
-    seed
-    (map car (generate-sequence-from-bools list-rotate
-                                           seed
-                                           (make-bools-list ENTROPY-BITS)
-                                           tree-hash)))))
-
-(define SEED '(#" " #"that" #" "))
-
 (for/list ([i 8])
-  (make-pwd-str SEED tree-3-hash))
+  (generate-word-pwd model-3 ENTROPY-BITS))
 
 
