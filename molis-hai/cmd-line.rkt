@@ -27,15 +27,15 @@
 (command-line
  #:program (short-program+command-name)
  #:once-each
- [("-b" "--bits") str "Specify number of bits of entropy"
+ [("-b" "--bits") bits "Specify number of bits of entropy"
                   (set-numeric-parameter-from-string
-                   entropy-bits str 'set-entropy-bits 500)]
- [("-n" "--passwords") str "Specify number of passwords generated"
+                   entropy-bits bits 'set-entropy-bits 500)]
+ [("-n" "--passwords") pwds "Specify number of passwords generated"
                        (set-numeric-parameter-from-string
-                        num-pwds str 'set-num-pwds 100)]
- [("-o" "--model-order") str "Specify the order of the model"
+                        num-pwds pwds 'set-num-pwds 100)]
+ [("-o" "--model-order") order "Specify the order of the model"
                          (set-numeric-parameter-from-string
-                          model-order str 'set-model-order 10)])
+                          model-order order 'set-model-order 10)])
 
 (define atotc-path (build-path here "a-tale-of-two-cities.txt"))
 
