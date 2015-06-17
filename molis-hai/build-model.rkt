@@ -114,10 +114,16 @@
 
   (check-exn
    #px"source text with at least one choice"
-   (lambda () (kvcount->model (ann
-                               (hash 'a (ann (hash 'b 3)
-                                             (HashTable Symbol Natural))
-                                     'b (ann (hash 'a 9)
-                                             (HashTable Symbol Natural)))
-                               (KVCount Symbol Symbol))
+   (lambda () (kvcount->model
+               ;; pre-6.2, TR can't handle hash with arguments.
+               ;; also, must spam the code with annotations :/ .
+               (ann
+                (hash-set
+                 (hash-set
+                  ((ann hash (-> (KVCount Symbol Symbol))))
+                  'a (ann (hash-set ((ann hash (-> (HashTable Symbol Natural)))) 'b 3)
+                          (HashTable Symbol Natural)))
+                 'b (ann (hash-set ((ann hash (-> (HashTable Symbol Natural)))) 'a 9)
+                         (HashTable Symbol Natural)))
+                (KVCount Symbol Symbol))
                               (lambda (x) #t)))))
