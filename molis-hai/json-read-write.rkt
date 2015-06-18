@@ -1,8 +1,9 @@
-#lang racket
+#lang racket/base
 
 ;; functions to write models to disk and read them back again.
 
 (require json
+         racket/contract
          ;; merge this into this file...
          "huffman-convert.rkt"
          "shared-types.rkt")

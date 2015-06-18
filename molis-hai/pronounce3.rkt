@@ -1,5 +1,8 @@
 #lang racket
 
+;; this file is an implementation of the "pronounce3" system invented
+;; by MD Leonhard, VN Venkatakrishnan, for comparison purposes.
+
 (define pre-templates
   '(aabbabba abababba ababbaba abbaabba
              abbababa abbabbaa baababba baabbaba

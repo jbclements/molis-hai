@@ -1,4 +1,4 @@
-#lang typed/racket
+#lang typed/racket/base
 
 ;; Copyright 2015 John Clements <clements@racket-lang.org>
 
@@ -13,7 +13,11 @@
          KVCount)
 
 
-;; GENERAL ACROSS ALL TYPES:
+;; we compute statistics using a hash table of hash tables. This
+;; is perfectly adequate for performance on a 1M corpus, using
+;; states that are strings of length 2 or 3. For larger corpuses
+;; or higher-order models, performance would probably be substantially
+;; improved by using a more complex data structure.
 
 ;; represents a map from states to counts of transitions
 (define-type (KVCount S T) (HashTable S (HashTable T Natural)))
@@ -79,7 +83,7 @@
                            ([(k v) (in-hash key-count-hash)]
                                     #:when (good-key? k))
                            (values k (ensure-nonnegative v))))
-  (cond [(empty? (hash-keys space-starters))
+  (cond [(null? (hash-keys space-starters))
          (error 'kvcount->seed-chooser "seeding criterion selected no states as possible starting states")]
         [else
          (count-hash->huff-tree space-starters)]))
