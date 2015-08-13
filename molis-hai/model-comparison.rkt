@@ -4,6 +4,12 @@
          racket/runtime-path
          rackunit)
 
+;; models may differ in their serialized representations; this
+;; compares the models, rather than their serializations.
+
+;; don't use in testing...
+(module* test racket/base)
+
 (define-runtime-path here ".")
 
 (define (model-file->jsexpr p)

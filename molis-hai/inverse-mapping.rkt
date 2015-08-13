@@ -4,6 +4,11 @@
          json
          rackunit)
 
+;; this maps a password back to the hex string that generated it. This
+;; code is a bit rough--it depends on the existence of files (a serialized
+;; model) that isn't part of the distribution. I'm disabling testing:
+(module* test racket/base)
+
 (define-runtime-path here ".")
 
 (define (file->jsexpr path)
