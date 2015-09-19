@@ -1,13 +1,21 @@
 #lang racket
 
+;; this file generates passwords using the word-based as
+;; opposed to the character-based model. It takes a long
+;; time to generate the models, and the resulting passwords
+;; are (in my opinion) needlessly wordy.
+
+;; also... something's not right with this file; it seems to
+;; be running for a long long time.
 
 (require rackunit
          racket/runtime-path
-         "use-model.rkt"
          "word-model.rkt"
          "random-bits.rkt"
          #;parsack)
 
+;; no need to test this file:
+(module* test racket/base)
 
 (define-runtime-path here ".")
 
@@ -47,10 +55,11 @@
                  [(list match) (loop regexps (cons match so-far))])])))))
 
 (define standard-tokens
-(for/list ([t (in-list tokens)])
-  (cond [(regexp-match #px"[ \n\t]+" t) " "]
-        [else (bytes->string/utf-8 t)])))
+  (for/list ([t (in-list tokens)])
+    (cond [(regexp-match #px"[ \n\t]+" t) " "]
+          [else (bytes->string/utf-8 t)])))
 
+(printf "done tokenizing\n")
 
 (define model-2 (time (build-word-model 2 standard-tokens)))
 
