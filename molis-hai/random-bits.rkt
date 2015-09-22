@@ -1,7 +1,9 @@
 #lang typed/racket
 
 ;; produce cryptographically secure sequences of bits using /dev/urandom
-(provide random-bool-list)
+(provide random-bool-list
+         byte->bits
+         bits->num)
 
 (define random-bit-source "/dev/urandom")
 
@@ -38,6 +40,19 @@
     ([i (in-range 8)])
     (= 0 (bitwise-and b (arithmetic-shift #b1 i)))))
 
+
+(: bool->bit (Boolean -> Byte))
+(define (bool->bit b)
+  (cond [b 1]
+        [else 0]))
+
+(: bits->num ((Listof Boolean) -> Integer))
+(define (bits->num bools)
+  (for/sum ([i : Natural (in-naturals)]
+            [b : Boolean (in-list bools)])
+           (cond [b 0]
+                 [else (expt 2 i)])))
+
 (module+ test
   (require typed/rackunit)
   (check-equal? (bytes->bits (list #b01010011 #b11001011))
@@ -45,7 +60,10 @@
                  (reverse (list #t #f #t #f #t #t #f #f))
                  (reverse (list #f #f #t #t #f #t #f #f))))
   (check-equal? (byte->bits #b01010011)
-                (reverse (list #t #f #t #f #t #t #f #f))))
+                (reverse (list #t #f #t #f #t #t #f #f)))
+  (check-equal? (bits->num (list #f)) 1)
+  (check-equal? (bits->num (reverse (list #t #f #t #f #t #t #f #f)))
+                #b01010011))
 
 
 
