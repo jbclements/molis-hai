@@ -84,7 +84,10 @@ split-at
 (define flattened (apply append (map flatten-dd (take paragraphs
                                                       #;3978
                                                       (- (length paragraphs)
-                                                         10)))))
+                                                         301
+                                                         
+                                                         
+                                                         #;10)))))
 
 (for ([s (in-list flattened)])
   (when (not (string? s))
