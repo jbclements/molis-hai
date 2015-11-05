@@ -3,7 +3,7 @@
 (require "random-bits.rkt")
 
 (define CHARS 
-  (string->list #;"01" "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!^"))
+  (string->list #;"01" "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890/+"))
 
 (define CHAR-BITS (inexact->exact (floor (/ (log (length CHARS)) (log 2)))))
 
@@ -26,8 +26,8 @@
                        (loop (drop bitlist CHAR-BITS)))]))))
 
 (module+ main
-  (define BITS 256)
-  (define num-choices 8)
+  (define BITS 65)
+  (define num-choices 3)
   (for ([p (build-list num-choices (lambda (x) (random-password BITS)))])
     (display p)
     (newline)))
