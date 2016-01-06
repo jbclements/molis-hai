@@ -26,8 +26,8 @@
                        (loop (drop bitlist CHAR-BITS)))]))))
 
 (module+ main
-  (define BITS 65)
-  (define num-choices 3)
+  (define BITS 256)
+  (define num-choices 1)
   (for ([p (build-list num-choices (lambda (x) (random-password BITS)))])
     (display p)
     (newline)))
