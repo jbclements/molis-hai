@@ -1,6 +1,7 @@
 #lang racket
 
 ;; this is basically obsolete, now that you can build order-0 models.
+
 (require "random-bits.rkt")
 
 (define CHARS 
@@ -27,7 +28,7 @@
                        (loop (drop bitlist CHAR-BITS)))]))))
 
 (module+ main
-  (define BITS 256)
+  (define BITS 443)
   (define num-choices 1)
   (for ([p (build-list num-choices (lambda (x) (random-password BITS)))])
     (display p)
