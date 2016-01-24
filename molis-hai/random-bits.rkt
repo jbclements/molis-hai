@@ -4,6 +4,7 @@
 (provide random-bool-list
          random-bytes
          byte->bits
+         bytes->bits
          bits->num)
 
 (define random-bit-source "/dev/urandom")

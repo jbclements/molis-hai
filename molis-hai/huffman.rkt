@@ -18,6 +18,7 @@
                            [r : (MyTree T)])
   #:transparent)
 
+;; a binary tree with T's at the leaves and weights at every leaf and node.
 (define-type (MyTree T) (U (Leaf T) (Branch T)))
 
 ;; keep clumping until we get one tree

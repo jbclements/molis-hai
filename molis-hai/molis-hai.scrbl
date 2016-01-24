@@ -5,7 +5,9 @@
 @author[(author+email "John Clements" "clements@racket-lang.org")]
 
 @(require (for-label racket
-                     "cmd-line.rkt"))
+                     "cmd-line.rkt"
+                     "char-model.rkt"
+                     "example-model.rkt"))
 
 This collection produces passwords using models built on a corpus
 of source text. It manages to guarantee generation of passwords
@@ -125,3 +127,34 @@ there's a bijection between them.
 The library contains lots of other stuff that I explored in the process of creating
 this; there's some code for extracting the text of e-mails, and for html processing,
 and for word-based generation, etc. etc. etc. Hopefully, it's all fairly easy to read.
+
+@section{Using molis hai as a Library}
+
+Naturally, you can also call this code as a racket library.
+
+@section{Character Model}
+
+@defmodule[molis-hai/char-model]{
+The character model is the ordinary mode of operation for molis hai. Specifically, a character
+model maps bits to password, and is built from the character n-grams from a specified source.
+}
+
+@defproc[(build-char-model [order natural?] [text string?]) model?]{
+Given an order and a text, builds a character model.
+}
+
+@defproc[(generate-char-pwd [model model?] [bits (listof boolean?)]) string?]{
+Given a model and a list of bits, return the corresponding password.
+}
+
+@section{Example Model}
+
+@defmodule[molis-hai/example-model]{
+Defines a model to use if you don't want to build your own.
+}
+
+@defthing[atotc-model model?]{
+A character model built from Dickens' @emph{A Tale Of Two Cities}, using order 2.
+}
+
+
