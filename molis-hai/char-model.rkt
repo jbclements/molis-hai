@@ -12,19 +12,15 @@
          
 
 ;; run the analyses for a given "order"
-(: build-char-model (Natural String -> (Model String Char)))
-(define (build-char-model n text)
+(: build-char-model (Natural String (String -> Boolean)
+                             -> (Model String Char)))
+(define (build-char-model n text good-start?)
   (define cleaned-text
     (kill-quotes
      (whitespace-crunch
       text)))
-  (kvcount->model (n-letter-kvcount n cleaned-text) starts-with-space?))
-
-
-;; does this string start with a space?
-(: starts-with-space? (String -> Boolean))
-(define (starts-with-space? str)
-  (equal? (string-ref str 0) #\space))
+  (kvcount->model (n-letter-kvcount n cleaned-text)
+                  good-start?))
 
 
 ;; crunch whitespace in a string
@@ -80,30 +76,46 @@
 ;; given a string and a character, add the char to the end and drop the first
 (: string-rotate : (String Char -> String))
 (define (string-rotate str chr)
-  (string-append (substring str 1) (string chr)))
+  (substring (string-append str (string chr)) 1))
 
 (module* test typed/racket
   (require (submod "..")
            "shared-types.rkt"
            "huffman.rkt"
            typed/rackunit)
+
+  
+
+
+  ;; does this string start with a space?
+  (: starts-with-space? (String -> Boolean))
+  (define (starts-with-space? str)
+    (equal? (string-ref str 0) #\space))
   
   (check-not-exn
-   (lambda () (Model-trans (build-char-model 2 "Marlatplace\n"))))
+   (lambda () (Model-trans (build-char-model 2 "Marlatplace\n"
+                                             starts-with-space?))))
   (check-equal?
    (hash-ref
-    (Model-trans (build-char-model 2 "Marlatplace\n"))
+    (Model-trans (build-char-model 2 "Marlatplace\n"
+                                   starts-with-space?))
     " M")
    (Leaf 1 #\a))
   (check-exn
    (regexp (regexp-quote "string longer than"))
-   (lambda ()(build-char-model 2 "P")))
+   (lambda ()(build-char-model 2 "P" starts-with-space?)))
   (check-exn
    (regexp (regexp-quote "source text with at least one choice"))
-   (lambda () (begin (build-char-model 2 "abcd efg") 'zzz)))
+   (lambda () (begin (build-char-model 2 "abcd efg"
+                                       starts-with-space?) 'zzz)))
 
   #;(check-equal? (whitespace-crunch "  a \t\nbc de   ")
                 " a bc de ")
   
   #;(check-equal? (kill-quotes "the \"only\" way")
-                "the only way"))
+                "the only way")
+
+  (check-equal?
+   (generate-char-pwd (build-char-model 0 "abcde" (λ (x) #t))
+                      (list #t #t #t #f #f #t #f #f #t #f #f #f))
+   "abecd"))

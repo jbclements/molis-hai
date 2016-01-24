@@ -43,6 +43,12 @@
      (raise-argument-error 'set-numeric-parameter-from-string
                            "String" 1 param str name limit)]))
 
+
+;; does this string start with a space?
+(: starts-with-space? (String -> Boolean))
+(define (starts-with-space? str)
+  (equal? (string-ref str 0) #\space))
+
 ;; set the source text (if the file exists)
 (: set-source-text (Any -> Void))
 (define (set-source-text path)
@@ -79,7 +85,8 @@
 (define atotc-path (build-path here "a-tale-of-two-cities.txt"))
 
 (define model (build-char-model (model-order)
-                                (file->string (source-text))))
+                                (file->string (source-text))
+                                starts-with-space?))
 
 (for ([i (in-range (num-pwds))])
   (display (substring (generate-char-pwd model

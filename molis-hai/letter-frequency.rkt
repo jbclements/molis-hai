@@ -18,10 +18,6 @@
          racket/runtime-path
          (only-in racket/file file->string))
 
-#;(provide (contract-out
-          [build-model (-> string? model?)]
-          [write-model (-> model? output-port? void?)]))
-
 ;; a run-model maps a state to a huffman tree of results
 (define model? (cons/c hash? any/c)
   #;(HashTable state? (HuffTree result?)))
@@ -72,10 +68,12 @@
 
 (define text (file->string source-path))
 
-
+;; does this string start with a space?
+(define (starts-with-space? str)
+  (equal? (string-ref str 0) #\space))
 
 (define (run order)
-  (define model  (time (build-char-model order text)))
+  (define model  (time (build-char-model order text starts-with-space?)))
   (model-write model (build-path "/tmp/" (format "~a-~a-model.js" abbrev order)))
   (cons (format "passwords of order ~a" order)
         (for/list ([i 8])

@@ -150,11 +150,17 @@ Given a model and a list of bits, return the corresponding password.
 @section{Example Model}
 
 @defmodule[molis-hai/example-model]{
-Defines a model to use if you don't want to build your own.
+Defines a few base models to use if you don't want to build your own.
 }
 
 @defthing[atotc-model model?]{
 A character model built from Dickens' @emph{A Tale Of Two Cities}, using order 2.
+}
+
+@defthing[base-model model?]{
+A character model of order 0, using a small fixed set of characters. This is essentially
+the same as choosing a password using a sequence of random characters; there's nothing
+innovative about this model, but it's good for purposes of comparison.
 }
 
 
