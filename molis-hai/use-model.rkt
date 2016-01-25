@@ -12,7 +12,8 @@
 (provide (struct-out Generated)
          generated->sequence
          generate
-         generate-sequence)
+         generate-sequence
+         invert-tree)
 
 ;; represents a generated sequence, including the chosen initial state
 ;; and the sequence of transitions. Each is accompanied by the number
@@ -79,11 +80,24 @@
          ;; if we run out, just go to #t all the time:
          (cond [(null? bools)
                 (pick-leaf/h (Branch-l dtree) count null)]
+               ;; #t indicates the *left* branch of the tree.
                [(car bools)
                 (pick-leaf/h (Branch-l dtree) (add1 count) (cdr bools))]
                [else
                 (pick-leaf/h (Branch-r dtree) (add1 count) (cdr bools))])]
         [else (values (Leaf-n dtree) count bools)]))
+
+;; given a tree, return a hash mapping leaf values to the sequence of booleans
+;; required to reach that leaf.
+(: invert-tree (All (T) ((MyTree T) -> (HashTable T (Listof Boolean)))))
+(define (invert-tree tree)
+  (make-immutable-hash
+   (let loop : (Listof (Pair T (Listof Boolean)))
+     ([prefix : (Listof Boolean) '()]
+      [tree   : (MyTree T)       tree])
+     (cond [(Branch? tree) (append (loop (cons #t prefix) (Branch-l tree))
+                                   (loop (cons #f prefix) (Branch-r tree)))]
+           [else (list (cons (Leaf-n tree) (reverse prefix)))]))))
 
 
 ;; TESTS
@@ -103,14 +117,21 @@
     (syntax-rules ()
       [(_ a) (call-with-values (lambda () a) list)]))
   
-  (define test-tree '(3 . ((1 . 2) . 4)))
-  (check-equal? (v2l (pick-leaf (num-cons-tree->mytree test-tree) '()))
+  (define test-tree (num-cons-tree->mytree '(3 . ((1 . 2) . 4))))
+  
+  (check-equal? (v2l (pick-leaf test-tree '()))
                 (list 3 0 '()))
-  (check-equal? (v2l (pick-leaf (num-cons-tree->mytree test-tree) '(#t)))
+  (check-equal? (v2l (pick-leaf test-tree '(#t)))
                 (list 3 1 '()))
-  (check-equal? (v2l (pick-leaf (num-cons-tree->mytree test-tree) '(#t #t)))
+  (check-equal? (v2l (pick-leaf test-tree '(#t #t)))
                 (list 3 1 '(#t)))
-  (check-equal? (v2l (pick-leaf (num-cons-tree->mytree test-tree) '(#f #t)))
+  (check-equal? (v2l (pick-leaf test-tree '(#f #t)))
                 (list 1 2 '()))
-  (check-equal? (v2l (pick-leaf (num-cons-tree->mytree test-tree) '(#f #f)))
-                (list 4 2 '())))
+  (check-equal? (v2l (pick-leaf test-tree '(#f #f)))
+                (list 4 2 '()))
+
+  (check-equal? (invert-tree test-tree)
+                (hash 3 (list #t)
+                      1 (list #f #t #t)
+                      2 (list #f #t #f)
+                      4 (list #f #f))))

@@ -1,5 +1,6 @@
 #lang racket
 
+;; this is basically obsolete, now that you can build order-0 models.
 (require "random-bits.rkt")
 
 (define CHARS 
