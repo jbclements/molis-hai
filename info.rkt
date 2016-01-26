@@ -11,5 +11,6 @@
         "web-server-lib"))
 
 (define build-deps
-  (list "rackunit-lib"))
+  (list "rackunit-lib"
+        "racket-doc"))
 
