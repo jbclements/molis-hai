@@ -2,8 +2,8 @@
 
 (define name "Molis Hai")
 
-(define compile-omit-paths '("experimental" "paper"))
-(define test-omit-paths '("experimental" "paper"))
+(define compile-omit-paths '("experimental" "paper" "user-study-2016"))
+(define test-omit-paths '("experimental" "paper" "user-study-2016"))
 (define scribblings '(("molis-hai.scrbl" () (tool))))
 
 (define raco-commands
