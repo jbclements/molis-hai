@@ -157,6 +157,9 @@
 (plot (density session-dates 0.1)
       #:width 1000)
 
+(plot-file (density session-dates 0.01)
+           "/tmp/log-density.pdf"
+      #:width 1000)
 (plot (density session-dates 0.01)
       #:width 1000)
 

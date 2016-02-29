@@ -1,0 +1,30 @@
+Hypotheses, recorded before testing:
+
+- students given the experimental passwords will "learn" their passwords
+  after less elapsed time.  Specifically, students are considered to have "learned"
+  a password when on three consecutive trials spaced by at least 23
+  hours, they enter the password correctly into the box on the first attempt.
+
+- students given the experimental passwords will "learn" their passwords
+  after fewer trials.  Specifically, students are considered to have "learned"
+  a password when on three consecutive trials spaced by at least 23
+  hours, they enter the password correctly into the box on the first attempt.
+
+- students given the experimental passwords will exhibit fewer errors
+  (measured using the levenshtein distance divided by the string length)
+  during the learning process.
+
+- students given the experimental passwords will retain their passwords
+  better after an extended break of 1 week.
+
+hypotheses unrelated to molis hai:
+
+- students will learn the beginnings of their passwords first.
+
+- students with 3 successes will no longer make mistakes.
+
+- box 5 will always be better than box 1
+
+- box 5 will always be as good or better than the following box 1
+
+- students will make the same mistakes--that is, once a portion is learned, it will tend to stay learned.
