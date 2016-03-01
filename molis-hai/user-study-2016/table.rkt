@@ -21,7 +21,7 @@
 ;; a table-index is a hash table from tuples of values from certain columns
 ;; to the rows that match those values. This is great as long as you don't
 ;; allow non-equality constraints.
-(struct Table-Index ([columns : (Listof Symbol)]
+(struct Table-Index ([columns : (Setof Symbol)]
                      [index : (HashTable (Vectorof Any) (Vectorof (Vectorof Any)))])
   #:transparent)
 
@@ -95,7 +95,7 @@
                            (Vectorof (Vectorof Any)))
       ([(key value) (in-hash new-index)])
       (values key (list->vector value))))
-  (set-box! (Table-indexes table) (cons (Table-Index cols vectorized-index)
+  (set-box! (Table-indexes table) (cons (Table-Index (list->set cols) vectorized-index)
                                         (unbox (Table-indexes table)))))
 
 ;; convert a sequence to a vector

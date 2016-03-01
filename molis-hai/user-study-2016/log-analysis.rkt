@@ -213,26 +213,6 @@
   (filter (λ (start) (member (session-start-key start) good-session-keys))
           session-starts))
 
-;; map from uid to training-str
-#;(define uid->training-str-table
-  (for/hash ([g (group-by session-start-userid session-starts)])
-    (define strs (map session-start-training-str g))
-    (define userid (session-start-userid (first g)))
-    (unless (equal? (length (remove-duplicates strs)) 1)
-      (error 'training-str-table "more than one training string for user: ~v\n"
-             userid))
-    (values userid (first strs))))
-
-;; group data by session key
-#;(define data
-  (for/fold ([ht (hash)])
-            ([d (in-list session-datas)])
-    (cond
-      [(member (session-data-key d) session-keys)
-       (hash-set ht (session-data-key d)
-                 (cons d (hash-ref ht (session-data-key d) empty)))]
-      [else ht])))
-
 ;; given a sub-table containing the rows associated with one key,
 ;; produce a list of lists of datas. All are in chronological order.
 (define (clean-session table key)
@@ -302,15 +282,30 @@
   (for/hash ([key (in-table-column session-datas 'key)])
     (values key (clean-session session-datas key)))))
 
-#;(
 
-;; a map from session key to cleaned data
-(define cleaned
-  (for/hash ([(key session) (in-hash data)])
-    (values key (clean-session session))))
+
+;; map from uid to training-str
+#;(define uid->training-str-table
+  (for/hash ([g (group-by session-start-userid session-starts)])
+    (define strs (map session-start-training-str g))
+    (define userid (session-start-userid (first g)))
+    (unless (equal? (length (remove-duplicates strs)) 1)
+      (error 'training-str-table "more than one training string for user: ~v\n"
+             userid))
+    (values userid (first strs))))
+
+;; group data by session key
+#;(define data
+  (for/fold ([ht (hash)])
+            ([d (in-list session-datas)])
+    (cond
+      [(member (session-data-key d) session-keys)
+       (hash-set ht (session-data-key d)
+                 (cons d (hash-ref ht (session-data-key d) empty)))]
+      [else ht])))
 
 ;; a map from anonymized uids to session starts
-(define uid-session-starts
+#;(define uid-session-starts
   (for/fold ([ht (hash)])
             ([s (in-list session-starts)]
              #:when (hash-has-key? cleaned (session-start-key s)))
@@ -320,12 +315,14 @@
                       (list (session-start-key s))))))
 
 ;; a map from anonymized uids to session datas
-(define uid-sessions
+#;(define uid-sessions
   (for/hash ([(k v) (in-hash uid-session-starts)])
     (values k (map (λ (key) (hash-ref cleaned key)) v))))
 
-;; a list of how many sessions each user has
-(define session-nums (map length (hash-values uid-sessions)))
+(define session-nums
+  (for/list ([uid (in-table-column session-starts 'userid)])
+    (length (table-ref session-starts 'userid 'key uid))))
+
 (define max-num-sessions (apply max session-nums))
 (for ([i (in-range (add1 max-num-sessions))])
   (printf "users with ~v sessions: ~v\n"
@@ -333,7 +330,9 @@
           (length (filter (λ (n) (= n i)) session-nums))))
 
 (printf "mean sessions per uid: ~v"
-        (mean (map length (hash-values uid-sessions))))
+        (mean session-nums))
+
+#;(
 
 ;; plot the times of participation of each user
 (block
