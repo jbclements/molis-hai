@@ -42,7 +42,8 @@
 (define USERS-LIST-FILE (build-path here "users.rktd"))
 
 (when (not (file-exists? USERS-LIST-FILE))
-  (error 'users-rktd "expected to find users list in users.rktd (should probably just discover these from logs)."))
+  (error 'users-rktd "expected to find users list in users.rktd (should probably \
+just discover these from logs)."))
 
 (define users
   (file->value (build-path here "users.rktd")))
@@ -112,7 +113,8 @@
        ;; old style, ignore:
        [(list 'session-start (or "guest" "clements" "guest2") (? string? sessionkey))
         #f]
-       [(list 'session-data (or "guest" "clements") (? string? session-key) (? number? timestamp)
+       [(list 'session-data (or "guest" "clements")
+              (? string? session-key) (? number? timestamp)
               (? number? box-num) (? string? box-content))
         #f]
        [other
@@ -268,7 +270,8 @@
                       (when (string? prev)
                         (when (not (legal-change? prev fc))
                           (printf
-                           "warning: illegal change (spellcheck?) from ~v to ~v in session: ~v\n"
+                           "warning: illegal change (spellcheck?) from ~v to \
+~v in session: ~v\n"
                            prev fc key)))
                       (cons f
                             (loop fc (rest remaining)))])])))
@@ -277,6 +280,7 @@
              deduped))
     deduped))
 
+(time (add-index! session-datas '(key)))
 (define cleaned
   (time
   (for/hash ([key (in-table-column session-datas 'key)])
@@ -374,8 +378,9 @@
                                     training-str)))))
    (list
     (lines data
-           #:color (cond [(< (string-length training-str) PASSWORD-LENGTH-THRESHOLD) 0]
-                         [else 1]))
+           #:color
+           (cond [(< (string-length training-str) PASSWORD-LENGTH-THRESHOLD) 0]
+                 [else 1]))
     (points data)))))
 
 
