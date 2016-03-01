@@ -18,7 +18,9 @@
 ;; these users are just a consequence of testing... ignore them.
 (define bogus-users
   (list "consenter"
-        "nonconsenter"))
+        "nonconsenter"
+        "guest"
+        "clements"))
 
 ;; likewise
 (define bogus-session-keys
@@ -89,7 +91,7 @@
               (? string? training-str))
         (cond [(or (member userid bogus-users)
                    (member session-key bogus-session-keys))
-               (printf "ignoring bogus session with key ~v from user ~v\n"
+               (printf "ignoring bogus session start with key ~v from user ~v\n"
                        session-key userid)]
               [else
                (session-start (~> tai64n
@@ -99,10 +101,14 @@
                               session-key training-str)])]
        [(list 'session-data (? string? session-key) (? number? timestamp)
               (? number? box-num) (? string? box-content))
-        (session-data (time-second
-                       (parse-tai64n
-                        tai64n))
-                      session-key timestamp box-num box-content)]
+        (cond [(member session-key bogus-session-keys)
+               (printf "ignoring bogus session data with key ~v"
+                       session-key)]
+              [else
+               (session-data (time-second
+                              (parse-tai64n
+                               tai64n))
+                             session-key timestamp box-num box-content)])]
        ;; old style, ignore:
        [(list 'session-start (or "guest" "clements" "guest2") (? string? sessionkey))
         #f]
@@ -227,52 +233,47 @@
                  (cons d (hash-ref ht (session-data-key d) empty)))]
       [else ht])))
 
-;; ensure all 5 boxes filled out, no paste operations.
-;; produces a list of lists of datas. All are in chonological
-;; order
-(define (clean-session lines)
+;; given a sub-table containing the rows associated with one key,
+;; produce a list of lists of datas. All are in chronological order.
+(define (clean-session table key)
+  (define session-table (sub-table table `((key ,key))))
   ;; these will be reversed as they go into the hash bins:
-  (define by-time (sort lines > #:key session-data-timestamp))
   (define by-nth
-    (for/fold ([ht (hash)])
-              ([l (in-list by-time)])
-      (hash-set ht (session-data-boxnum l)
-                (cons l (hash-ref ht (session-data-boxnum l)
-                                  '())))))
+    (for/hash ([boxnum (in-table-column session-table 'boxnum)])
+      (define selected
+        (select-where session-table '(timestamp content) `((boxnum ,boxnum))))
+      (when (empty? selected)
+        (error 'by-nth "internal error 56d4"))
+      (values boxnum
+              (sort selected <
+               #:key (λ (v) (vector-ref v 0))))))
   (define boxes-with-data (sort (hash-keys by-nth) <))
-  ;; check all boxes were completed:
-  #;(unless (equal? boxes-with-data
-                  '(1 2 3 4 5))
-    (error 'clean-session
-           "session ~v has incomplete set of box-nums: ~v"
-           (session-data-key (first lines))
-           (hash-keys by-nth)))
   ;; check box 1 is present
   (unless (= (first boxes-with-data) 1)
     (error 'clean-session
            "session ~v is missing box 1"
-           (session-data-key (first lines))))
+           key))
   ;; check the boxes occur in numeric order
   (for/list ([a (in-list boxes-with-data)]
              [b (in-list (rest boxes-with-data))])
     (unless (= (add1 a) b)
       (error 'clean-session
              "session ~v has incomplete box-nums: ~v"
-             (session-data-key (first lines))
+             key
              boxes-with-data)))
   ;; warn if missing late boxes:
   (when (< (length boxes-with-data) 5)
     (printf "warning: session ~v has data for only ~v boxes\n"
-            (session-data-key (first lines))
+            key
             (length boxes-with-data)))
   (define last-box-num (last boxes-with-data))
   (for/list ([i (in-list boxes-with-data)])
     ;; ensure chronological order is preserved:
     (when (< i last-box-num)
       (define earliest-of-next
-        (session-data-timestamp (first (hash-ref by-nth (add1 i)))))
+        (vector-ref (first (hash-ref by-nth (add1 i))) 0))
       (for ([l (in-list (hash-ref by-nth i))])
-        (unless (< (session-data-timestamp l) earliest-of-next)
+        (unless (< (vector-ref l 0) earliest-of-next)
           (error 'out-of-order))))
     ;; eliminate lines whose strings are equal to the previous one:
     (define deduped
@@ -280,7 +281,7 @@
         (cond [(empty? remaining) '()]
               [else
                (define f (car remaining))
-               (define fc (session-data-content f))
+               (define fc (vector-ref f 1))
                (cond [(equal? prev fc)
                       (loop prev (rest remaining))]
                      [else
@@ -288,8 +289,7 @@
                         (when (not (legal-change? prev fc))
                           (printf
                            "warning: illegal change (spellcheck?) from ~v to ~v in session: ~v\n"
-                           prev fc
-                           (session-data-key f))))
+                           prev fc key)))
                       (cons f
                             (loop fc (rest remaining)))])])))
     (when (< 100 (length deduped))
@@ -297,10 +297,13 @@
              deduped))
     deduped))
 
-#;(
 (define cleaned
-  (for/list ([key (in-table-column session-datas 'key)])
-    (vector key (clean-session (table-ref session-datas 'userid )))))
+  (time
+  (for/hash ([key (in-table-column session-datas 'key)])
+    (values key (clean-session session-datas key)))))
+
+#;(
+
 ;; a map from session key to cleaned data
 (define cleaned
   (for/hash ([(key session) (in-hash data)])

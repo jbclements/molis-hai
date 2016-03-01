@@ -4,14 +4,34 @@
          table-row-count
          in-table-column
          table-ref
-         table-ref1)
+         table-ref1
+         select-where
+         sub-table)
 
 ;; a table is (table (listof symbol) (listof vector))
 ;; containing a list of column names and a list of vectors
 ;; of the specified length
 (struct Table ([name->idx : (HashTable Symbol Index)]
                [idx->name : (HashTable Index Symbol)]
-               [data : (Listof (Vectorof Any))]))
+               ;; kept just to allow sub-tables:
+               [names     : (Listof Symbol)]
+               [data : (Listof (Vectorof Any))]
+               [indexes : (Boxof (Listof Table-Index))]))
+
+;; a table-index is a hash table from tuples of values from certain columns
+;; to the rows that match those values. This is great as long as you don't
+;; allow non-equality constraints.
+(struct Table-Index ([columns : (Listof Symbol)]
+                     [index : (HashTable (Vectorof Any) (Vectorof (Vectorof Any)))])
+  #:transparent)
+
+;; are two tables equal?
+(: table-equal? (Table Table -> Boolean))
+(define (table-equal? t1 t2)
+  (and (equal? (Table-names t1)
+               (Table-names t2))
+       (equal? (Table-data t1)
+               (Table-data t2))))
 
 ;; construct a two-way lookup table between the list of names
 ;; and the corresponding integers
@@ -39,9 +59,8 @@
 
 ;; given a sequence of names of length 'n' and a sequence of (sequences of length 'n'),
 ;; return a table. Columns are labeled by the names.
-(: make-table ((Sequenceof Symbol) (Sequenceof (Sequenceof Any)) -> Table))
-(define (make-table nameseq dataseq)
-  (define names (sequence->list nameseq))
+(: make-table ((Listof Symbol) (Sequenceof (Sequenceof Any)) -> Table))
+(define (make-table names dataseq)
   (define name-count (length names))
   (: data (Listof (Vectorof Any)))
   (define data (map (ann sequence->vector
@@ -56,7 +75,28 @@
                           (format "rows of length ~v" name-count)
                           data))
   (define-values (n2i i2n) (names->lookup-tables names))
-  (Table n2i i2n data))
+  (Table n2i i2n names data (box '())))
+
+;; imperatively add an index on the given fields to the table
+(: add-index! (Table (Listof Symbol) -> Void))
+(define (add-index! table cols)
+  (: selected-idxs (Vectorof Index))
+  (define selected-idxs (for/vector : (Vectorof Index)
+                          ([col (in-list cols)])
+                          (find-idx table col)))
+  (define new-index
+    (for/fold ([ht : (HashTable (Vectorof Any) (Listof (Vectorof Any))) (hash)])
+              ([row (in-list (Table-data table))])
+      (define key (for/vector ([idx (in-vector selected-idxs)])
+                    (vector-ref row idx)))
+      (hash-set ht key (cons row (hash-ref ht key (λ () '()))))))
+  (define vectorized-index
+    (for/hash : (HashTable (Vectorof Any)
+                           (Vectorof (Vectorof Any)))
+      ([(key value) (in-hash new-index)])
+      (values key (list->vector value))))
+  (set-box! (Table-indexes table) (cons (Table-Index cols vectorized-index)
+                                        (unbox (Table-indexes table)))))
 
 ;; convert a sequence to a vector
 (: sequence->vector (All (T) ((Sequenceof T) -> (Vectorof T))))
@@ -102,6 +142,53 @@
     [#f (raise-argument-error 'find-idx "known field name" 1 table col-name)]
     [idx idx]))
 
+;; looks like we need something like a "select". given a table
+;; and a sequence of columns and a sequence of constraints, return
+;; a sequence of vectors containing the requested columns from
+;; the rows matching the constraints. For now, a constraint is
+;; simply a list of length two containing a column name and a
+;; value, and represents an equality constraint
+(define-type Constraint (List Symbol Any))
+(: select-where (Table (Listof Symbol) (Listof Constraint) -> (Sequenceof (Vectorof Any))))
+(define (select-where table cols constraints)
+  (: idx-constraints (Listof (List Index Any)))
+  (define idx-constraints (for/list ([constraint : Constraint constraints])
+                            (list (find-idx table (first constraint))
+                                  (second constraint))))
+  (: selected-idxs (Vectorof Index))
+  (define selected-idxs (for/vector : (Vectorof Index)
+                          ([col cols])
+                          (find-idx table col)))
+  (: pred ((Vectorof Any) -> Boolean))
+  (define (pred row)
+    (for/and ([c (in-list idx-constraints)])
+      (equal? (vector-ref row (first c)) (second c))))
+  (for/list : (Listof (Vectorof Any))
+    ([row (in-list (Table-data table))]
+     #:when (pred row))
+    (for/vector ([idx selected-idxs])
+      (vector-ref row idx))))
+
+;; given a table and a list of constraints, compute a sub-table
+;; containing only the rows satisfying those constraints.
+(: sub-table (Table (Listof Constraint) -> Table))
+(define (sub-table table constraints)
+  (: idx-constraints (Listof (List Index Any)))
+  (define idx-constraints (for/list ([constraint : Constraint constraints])
+                            (list (find-idx table (first constraint))
+                                  (second constraint))))
+  (: pred ((Vectorof Any) -> Boolean))
+  (define (pred row)
+    (for/and ([c (in-list idx-constraints)])
+      (equal? (vector-ref row (first c)) (second c))))
+  (define kept-rows
+   (for/list : (Listof (Vectorof Any))
+     ([row (in-list (Table-data table))]
+      #:when (pred row))
+     row))
+  (make-table (Table-names table)
+              kept-rows))
+
 (module+ test
   (require typed/rackunit)
 
@@ -121,4 +208,35 @@
   (check-equal? (table-ref1 my-table 'b 'c 4) "abch")
 
   (check-equal? (table-row-count my-table) 4)
+
+  (check-equal? (sequence->list (select-where my-table '(b c) '((a "a") (c "d"))))
+                (list (vector 1 "d")
+                      (vector 2 "d")))
+
+  (check table-equal?
+         (sub-table my-table '((c "d")))
+         (make-table '(a b c)
+                     '(#("a" 1 "d")
+                       #("a" 2 "d"))))
+
+  ;; WARNING: TEST OF MUTABLE STATE
+  (check-equal? (unbox (Table-indexes my-table)) '())
+  (add-index! my-table '(c a))
+  (check-equal? (unbox
+                 (Table-indexes
+                  my-table))
+                (cons (Table-Index
+                       '(c a)
+                       (ann
+                        ((ann make-immutable-hash
+                              ((Listof (Pairof (Vectorof Any)
+                                               (Vectorof (Vectorof Any))))
+                               -> (HashTable (Vectorof Any)
+                                             (Vectorof (Vectorof Any)))))
+                         '((#("d" "a") . #(#("a" 2 "d") #("a" 1 "d")))
+                           (#("e" "a") . #(#("a" 3 "e")))
+                           (#("abch" "b") . #(#("b" 4 "abch")))))
+                        (HashTable (Vectorof Any)
+                                   (Vectorof (Vectorof Any)))))
+                      empty))
   )
