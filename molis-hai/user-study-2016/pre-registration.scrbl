@@ -153,14 +153,16 @@ As of this writing, we have
 examined a density graph of student participation, pictured here:
 
 
-@image[#:scale 0.4 "log-density.pdf"]
+@image[#:scale 0.3 "log-density.pdf"]
 
 ...and also this graph of individual log times:
 
-@image[#:scale 0.4 "individual-log-times.pdf"]
+@image[#:scale 0.3 "individual-log-times.pdf"]
 
 ...and finally, this preliminary overview of mistakes made, including a separation of
 the two experimental groups:
+
+@image[#:scale 0.22 "user-tracks.pdf"]
 
 @subsection{Missing Data}
 
@@ -210,8 +212,10 @@ we see the data).
 
 To be more precise, the model is a single-parameter one, described by:
 
-       / 1 - (1/l)t   when t <= l
-f(t) = - 0            otherwise
+@verbatim|{
+f(t) = 1 - (t/l)  when 0 <= t < l
+f(t) = 0          when l <  t
+}|
 
 The parameter 'l' describes the number of seconds taken to learn the string.
 

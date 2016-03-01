@@ -129,6 +129,8 @@ just discover these from logs)."))
    session-start-col-names
    (map struct->list (filter session-start? log-lines))))
 
+(add-index! session-starts '(userid))
+
 (define session-keys
   (in-table-column session-starts 'key)
   #;(map session-start-key session-starts))
@@ -144,6 +146,8 @@ just discover these from logs)."))
                (not (member (session-data-content sd)
                             bogus-boxentries))))
             log-lines))))
+
+(time (add-index! session-datas '(key)))
 
 (printf "~v session starts\n" (table-row-count session-starts))
 
@@ -193,27 +197,13 @@ just discover these from logs)."))
           (lines p))))
  #:width 1000)
 
-
-
-;; map from session key to user:
-#;(define key->user-map
-  (for/hash ([s (in-list session-starts)])
-    (values (session-start-key s) (session-start-userid s))))
-
 ;; session keys with no data:
 (define no-session
-  (remove* (in-table-column session-datas 'key) session-keys)
-  #;(filter (λ (k) (not (hash-has-key? data k))) session-keys))
+  (remove* (in-table-column session-datas 'key) session-keys))
 
 (printf "~v session keys have no data\n" (length no-session))
 
-(define good-session-keys
-  (in-table-column session-datas 'key))
-
-#;(define good-session-starts
-  ()
-  (filter (λ (start) (member (session-start-key start) good-session-keys))
-          session-starts))
+(define good-session-keys (in-table-column session-datas 'key))
 
 ;; given a sub-table containing the rows associated with one key,
 ;; produce a list of lists of datas. All are in chronological order.
@@ -280,48 +270,10 @@ just discover these from logs)."))
              deduped))
     deduped))
 
-(time (add-index! session-datas '(key)))
 (define cleaned
   (time
   (for/hash ([key (in-table-column session-datas 'key)])
     (values key (clean-session session-datas key)))))
-
-
-
-;; map from uid to training-str
-#;(define uid->training-str-table
-  (for/hash ([g (group-by session-start-userid session-starts)])
-    (define strs (map session-start-training-str g))
-    (define userid (session-start-userid (first g)))
-    (unless (equal? (length (remove-duplicates strs)) 1)
-      (error 'training-str-table "more than one training string for user: ~v\n"
-             userid))
-    (values userid (first strs))))
-
-;; group data by session key
-#;(define data
-  (for/fold ([ht (hash)])
-            ([d (in-list session-datas)])
-    (cond
-      [(member (session-data-key d) session-keys)
-       (hash-set ht (session-data-key d)
-                 (cons d (hash-ref ht (session-data-key d) empty)))]
-      [else ht])))
-
-;; a map from anonymized uids to session starts
-#;(define uid-session-starts
-  (for/fold ([ht (hash)])
-            ([s (in-list session-starts)]
-             #:when (hash-has-key? cleaned (session-start-key s)))
-    (define fake-uid (session-start-userid s))
-    (hash-set ht fake-uid
-              (append (hash-ref ht fake-uid '())
-                      (list (session-start-key s))))))
-
-;; a map from anonymized uids to session datas
-#;(define uid-sessions
-  (for/hash ([(k v) (in-hash uid-session-starts)])
-    (values k (map (λ (key) (hash-ref cleaned key)) v))))
 
 (define session-nums
   (for/list ([uid (in-table-column session-starts 'userid)])
@@ -336,16 +288,14 @@ just discover these from logs)."))
 (printf "mean sessions per uid: ~v"
         (mean session-nums))
 
-#;(
-
 ;; plot the times of participation of each user
-(block
+#;(block
  (define start-sets (for/list ([(uid sessions) (in-hash uid-session-starts)])
                       (map session-start-server-timestamp sessions)))
  (sort start-sets < #:key last))
 
 ;; given a list of 
-(define ((box-dist training-str) datas)
+#;(define ((box-dist training-str) datas)
   (define key (session-data-key (last datas)))
   (define last-entry (session-data-content (last datas)))
   (list last-entry (string-levenshtein training-str last-entry)))
@@ -356,32 +306,49 @@ just discover these from logs)."))
   (define str (hash-ref uid->training-str-table uid))
   (list uid str (map (box-dist str) (map first sessions))))
 
+;; I REALLY DO NOT HAVE TIME TO IMPLEMENT INNER JOIN.
+;; I REALLY SHOULD JUST HAVE USED SQLITE.
 
-#;(plot
+(define user-plot-pairs
+  (for/list ([userid (in-table-column session-starts 'userid)])
+    (define keys-by-time
+      (filter (λ (kt) (< (vector-ref kt 1) 1455800000))
+      (sort (filter (λ (kt) (hash-has-key? cleaned (vector-ref kt 0)))
+                    (select-where session-starts '(key server-timestamp)
+                                  `((userid ,userid))))
+            <
+            #:key (λ (v) (vector-ref v 1)))))
+    (define training-str
+      (first (table-ref session-starts 'userid 'training-str userid)))
+    (define one-users-data
+      (for/list ([kt (in-list keys-by-time)])
+        (match-define (vector key ts) kt)
+        (define last-entry
+          (last (first (hash-ref cleaned key))))
+        
+        (vector (+ ts (random 300))
+                (+ (/ (- (random 20) 10) 20)
+                   (string-levenshtein (vector-ref last-entry 1)
+                                       training-str)))))
+    (list
+     (lines one-users-data
+            #:color
+            (cond [(< (string-length training-str) PASSWORD-LENGTH-THRESHOLD) 0]
+                  [else 1]))
+     (points one-users-data))))
+
+(plot
  #:width 1300
  (apply
   append
- (for/list ([user-starts (group-by session-start-userid good-session-starts)]
-            [idx (in-naturals)])
-   (define training-str (hash-ref uid->training-str-table (session-start-userid
-                                                             (first
-                                                              user-starts))))
-   (define data
-     (for/list ([session (in-list
-                        (sort user-starts < #:key session-start-server-timestamp))])
-     (define last-entry
-       (last (first (hash-ref cleaned (session-start-key session)))))
-     
-     (vector (+ (session-start-server-timestamp session) (random 300))
-             (+ (/ (- (random 20) 10) 20)
-                (string-levenshtein (session-data-content last-entry)
-                                    training-str)))))
-   (list
-    (lines data
-           #:color
-           (cond [(< (string-length training-str) PASSWORD-LENGTH-THRESHOLD) 0]
-                 [else 1]))
-    (points data)))))
+  user-plot-pairs))
+
+#;(
+
+
+
+
+
 
 
 #;(
