@@ -1,6 +1,6 @@
 #lang scribble/sigplan @preprint
 
-@title{Generating 56-bit passwords using Markov Models (and Charles Dickens)}
+@title{Memorable 56-bit passwords using Markov Models and Huffman trees (and Charles Dickens)}
 
 @(authorinfo "John Clements" "Cal Poly San Luis Obispo"  "clements@brinckerhoff.org")
 
@@ -29,6 +29,11 @@ and security. Using the system, we get 56-bit passwords like
 Users can try the system, at
 
 @tt{http://www.brinckerhoff.org/molis-hai/}}
+
+In order to verify that these passwords are more memorable than the
+obvious pick-characters-from-a-hat approach, we conducted a controlled
+experiment on participants in an upper-level college class over the course
+of five weeks.
 
 @section{Introduction}
 

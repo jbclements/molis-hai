@@ -309,39 +309,52 @@ just discover these from logs)."))
 ;; I REALLY DO NOT HAVE TIME TO IMPLEMENT INNER JOIN.
 ;; I REALLY SHOULD JUST HAVE USED SQLITE.
 
-(define user-plot-pairs
+(define user-traces
   (for/list ([userid (in-table-column session-starts 'userid)])
     (define keys-by-time
-      (filter (λ (kt) (< (vector-ref kt 1) 1455800000))
       (sort (filter (λ (kt) (hash-has-key? cleaned (vector-ref kt 0)))
                     (select-where session-starts '(key server-timestamp)
                                   `((userid ,userid))))
             <
-            #:key (λ (v) (vector-ref v 1)))))
+            #:key (λ (v) (vector-ref v 1))))
     (define training-str
       (first (table-ref session-starts 'userid 'training-str userid)))
-    (define one-users-data
-      (for/list ([kt (in-list keys-by-time)])
-        (match-define (vector key ts) kt)
-        (define last-entry
-          (last (first (hash-ref cleaned key))))
-        
-        (vector (+ ts (random 300))
-                (+ (/ (- (random 20) 10) 20)
-                   (string-levenshtein (vector-ref last-entry 1)
-                                       training-str)))))
     (list
-     (lines one-users-data
+     (string-length training-str)
+     (for/list ([kt (in-list keys-by-time)])
+       (match-define (vector key ts) kt)
+       (define last-entry
+         (last (first (hash-ref cleaned key))))
+       (vector ts
+               (/ (string-levenshtein (vector-ref last-entry 1)
+                                      training-str)
+                  (string-length training-str)))))))
+
+(define user-plot-pairs
+  (for/list ([lp (in-list user-traces)])
+    (match-define (list pstrlen user-data) lp)
+    (list
+     (lines user-data
             #:color
-            (cond [(< (string-length training-str) PASSWORD-LENGTH-THRESHOLD) 0]
+            (cond [(< pstrlen PASSWORD-LENGTH-THRESHOLD) 0]
                   [else 1]))
-     (points one-users-data))))
+     (points user-data))))
 
 (plot
  #:width 1300
  (apply
   append
   user-plot-pairs))
+
+(for/list ([i 10])
+  (plot
+   #:width 1300
+   (list-ref user-plot-pairs i)))
+
+
+(write-to-file user-traces "/tmp/timesequences.rktd"
+               #:exists 'truncate)
+
 
 #;(
 
