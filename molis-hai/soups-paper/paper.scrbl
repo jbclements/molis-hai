@@ -33,7 +33,9 @@ Users can try the system, at
 In order to verify that these passwords are more memorable than the
 obvious pick-characters-from-a-hat approach, we conducted a controlled
 experiment on participants in an upper-level college class over the course
-of five weeks.
+of five weeks. This experiment suggests that after several weeks of training,
+students were more likely to recall the passwords in the experimental group
+to within 20%.
 
 @section{Introduction}
 
@@ -122,7 +124,8 @@ to find a set of passwords (more specifically, a set of @${2^{56}} passwords)
 that are as memorable as possible.
 
 We should acknowledge at the outset that there are many password schemes that
-use passwords that are not simply alphanumeric sequences. We acknowledge the
+use passwords that are not simply alphanumeric sequences, but include biometric
+data, 2-factor authentication, hardware keys, and the like. We acknowledge the
 work that's gone into these approaches, and we regard these schemes as
 outside the scope of this paper.
 
@@ -146,21 +149,22 @@ usCGQZ)p-}
 In this system, a single randomly generated password has an entropy of 56.4 bits.
 
 Naturally, a different alphabet can be used, and this will affect memorability. For
-instance, we use an alphabet containing only one and zero:
+instance, here we use an alphabet containing only one and zero:
 
 @verbatim{
-11011111100111010101111100111010100010000110000011110110
-10010110011110100010000011001111111000101100110010001001
-11101101110001000001011001011110000111000101100001011101
-11101001000011010100110010011000111000110011110001010011
-00110110011001110011000111001111111011011101010010111000
-11001001101011110111101010100100010001110111111111111101
-10000101110111100101010111010000111110111010110111100100
-11101010100010011010000101010000101010110010110110001001
+1101111110011101
+ 0101111100111010
+ 1000100001100000
+ 11110110
+1001011001111010
+ 0010000011001111
+ 1110001011001100
+ 10001001
 }
 
 In this system, each password is 56 characters long, and has exactly 56 bits of 
 entropy. We conjecture that passwords such as these would be difficult to memorize.
+Also, we show only two such passwords, to save paper.
 
 @subsection{Random Words}
 
@@ -236,7 +240,8 @@ generation always involves one choice from a set of size 13 followed by four cho
 from a set of size 5 (the vowels) and four choices from a set of size 22, followed
 by a second round of each of these (in order to generate a second word).  For all of
 these schemes, every possible word is generated with equivalent probability. This
-property is crucial, since a system that generates some passwords with higher probability---such
+property is crucial, since a system that generates some passwords with higher
+probability---such
 as the scheme adopted by the NIST@~cite[nist-passwords]---means that by focusing on
 more probable passwords, attackers can gain leverage.
 
@@ -262,10 +267,10 @@ This idea opens up a new way to generate passwords. Rather than making a sequenc
 choices, we can build a model that draws randomness from a given sequence of bits. That is, 
 we first generate a sequence of 56 random bits, and then use this as a stream of randomness
 to determine the behavior of a pseudo-random algorithm.  If the stream of bits represents the
-only source of (apparent) nondeterminism, then in fact the algorithm is deterministic, and
+only source of randomness, then in fact the algorithm is deterministic, and
 indeed determined entirely by the given sequence of bits.
 
-Using this approach, we can lift the restriction (all choices must be equally likely) that 
+Using this approach, we can lift the restriction (all local choices must be equally likely) that 
 has dogged the creation of memorable or idiomatic-sounding password generators.
 
 Specifically, our chosen non-uniform approach uses a Markov model, built from Charles Dickens'
@@ -482,9 +487,11 @@ they find that the increase in memorability compensates for
 the increase in length.
 
 A final note concerns the selection of the initial state.
-We've chosen simply to start with the appropriate-length
-substring of "The ". Naturally, the starting state could be
-chosen at random, to obtain slightly shorter strings.
+We've chosen to choose from those states starting with a
+space, in order to simulate a password that begins "at the
+beginning of a word," and we build a huffman tree to choose
+from these initial states basen on their frequency within
+the text.
 
 @section{Examples}
 
@@ -493,75 +500,170 @@ The proof is in the pudding! Let's see some examples.
 First, we generate strings using the one-character Markov model:
 
 @verbatim{
-Tenon thempea co ts
-Te od " perdy, wil
-Thalivares youety
-T.) reait dean,
-Tr,'ser h Lof owey
-Tempr." gedolam,
-Te cty se d y Mr,-
-Tere th, Fand ry."}
+sochete ftr d f
+walowemfronlo
+them-l parof h o
+tacupis anemas a
+ar ps o hen tsefr
+adowepr,-ce he T
+land tr slor. ter
+my lly af a sioo}
 
-These may be seen to be short, but contain challenging sequences, such as @tt{cty se d y}.
+These may be seen to be short, but contain challenging sequences, such as @tt{lly af a}.
 
 Next, strings generated using the two-character Markov model:
 
 @verbatim{
-Therfur, unappen. So
-Therying hant abree,
-The cusay is wither?" t
-The greed hispefters and
-The as obe so yon ters
-Thad gre strow; agamo
-Thereakentin town ing." "MO
-Their, anyte!' hat," "te"}
+witaing her or to soma
+ronstionsay ragao
+wiliking hus ands this st
+in.'s.--overstichery
+Driess, bursto anc
+guavichfultakfull
+way, Lounto coverb
+Yah!--by be wings,--wi
+}
 
-These are slightly longer, but much more pronounceable, and appear substantially 
+These are slightly longer, but much more pronounceable, and appear somewhat
 more memorable.
 
 Next, strings generated using the three-character Markov model:
 
-@verbatim{Ther highly to a vice of eart
-Then," suspeakings beers ways 
-They, anythis, int founged mad
-They?" "If, who waite any," mul
-The moritiour him; businenl
-Thensuspellectiver fur
-Then him do nown wilty," res
-The fix, buse hand, followest."}
+@verbatim{younde; a mad revide s
+thround eignal coff his, m
+he who's rests. The off
+freets, Mr. Befolks our chr
+not on the said Midn't hest
+of peak out it, an off (m
+were walls. Twice that. It i
+know thin one be thing; i
+}
 
 These are far more English-like, with many actual words. As a side note, the 
 phrases generated here and in by the prior two-character model appear almost
-archaic, with words like "waite," "nown," and "yon". Naturally, these are longer
+archaic, with words like "younde," "coff," and "hest". Naturally, these are longer
 than the prior set.
 
 Finally, strings generated using the four-character Markov model:
 
-@verbatim{The tile fareweloped, and ever p
-The shing it nother to delve w
-The found, Sydney Carton wreckles Evremonds. 
-  Su
-The snorting ever in by turbed t
-The receive a year." To appeality a
-The back understitch ther's the 
-The wrong and, here!"--Mr. Calm info
-The diffidelicitizen aparticulous timo}
+@verbatim{naughed, Who tall her o
+in them forturbatious, who I knew p
+Fancy? News of all? Two. If than 
+growing lumbent if thankle imp
+commonsteady for heavy had hom
+a luncher's sacrificers was. T
+kiss Manettle clothed them, beni
+naminished--this. What? Oh! It wi
+}
 
-At this point, it's fairly clear what the source is; Sydney Carton appears by name.
-In addition, you get some fairly interesting neologisms---in this case, "diffidelicitizen."
-It's not a word, but maybe it should be. Also, we see some people that aren't actually
-in the book, including "Mr. Calm info."
+At this point, it's starting to become clear what the source is, and in some strings, Sydney
+Carton appears by name.
+In addition, you get some fairly interesting neologisms---in this case, "forturbatious."
+It's not a word, but maybe it should be.
 
 @section{Choice of Corpus}
 
 Naturally, the choice of @emph{A Tale of Two Cities} is largely arbitrary; any
 corpus of reasonable length will suffice. One intriguing possibility would be
-to choose the full text of all of the e-mails in a particular user's history.
+to choose the full text of all of the e-mails in a particular user's history.@note{
+This is actually not hypothetical; we do exactly this in the generation of our
+own passwords.}
 This text would presumably reflect the style of text that a particular user
 is accustomed to read and write, and should in principle be extraordinarily
 memorable.  Note that the security of the system is entirely independent of
 the chosen corpus; our attack model assumes that the attacker already has
 the full text of the corpus.
+
+@section{Evaluation}
+
+In order to explore the advantages of our proposed system, we designed and executed
+an experiment.
+
+@subsection{Subjects and Procedure}
+
+Specifically, we recruited students from an upper-level university class to
+participate in a one-minute training session at the beginning of an in-class
+lab, each time it met. These sessions occurred three times a week, and the experiment
+ran for a total of 13 sessions. The students were randomly assigned to either
+the experimental group or to the control group.  Each student was assigned a
+single password to be learned during the course of the experiment. Those in
+the experimental group were assigned a password generated using our system,
+set to use an order-two model generated from @emph{A Tale of Two Cities}.
+Those in the control group were assigned a random nine- or ten-character password
+generated by choosing randomly from a set of characters. Both the experimental
+and the control passwords were generated using 56 bits of randomness each.
+
+At the beginning of each lab session, students visited a web page that required
+them to log in using existing student credentials, and then asked them to type the
+password that they'd been given. (Naturally, the first time they used the system,
+their guesses were blank.) Following this, they were shown the correct password
+and asked to type it three times with the assistance of green and red squares
+indicating whether the corresponding character had been typed correctly.
+
+FIXME SCREENSHOT HERE.
+
+After three assisted attempts, students were again challenged to type the password
+without being able to see it. They were then finished, until the next training
+session.
+
+During the student's interaction, the system logged each
+users's session start, and every change to a password entry
+box, along with timing information. In essence, the system
+acted as a keylogger.
+
+Note that no active deception was involved in the experiment; students knew that
+they were participating in a study about the memorability of passwords.
+
+@subsection{Cheating}
+
+The reader may wonder, at this point, whether the students cheated. Certainly,
+they could have copied the web page from the prompt, and memorized it offline,
+or simply pasted it into place. However, we saw little evidence of this. The
+students participated in a lab setting, which may have inclined them toward
+honesty. Also, no course credit was associated with performance in the experiment.
+
+Finally, we believe that cheating---if it occurred---would be equally likely
+among the control and experimental group.
+
+@subsection{Pre-Registration}
+
+While the experiment was going on, we discovered the existence of the Open
+Science Foundation, online at @url["http://osf.io/"]. Their mission is to help
+ensure the quality of experimentation in the natural sciences by allowing
+experimenters to describe the experiments that they are performing and the
+analyses that they plan to perform @emph{before} examining the data and extracting
+the hypotheses that are best supported by the data (``hmm, it looks like passwords
+containing exactly three spaces are much more memorable!''). We registered our
+project, providing pointers to code, and a plan for analysis@~cite[osf-registration].
+
+In our pre-registration, we described two hypotheses. The first was that our passwords
+would be learned more quickly, and the second was that they would be retained longer.
+
+@subsection{Analysis}
+
+In order to measure password learning, our primary instrument was the password entered
+by each student into the first, unprompted, password box that was a part of each
+session. We used Levenshtein string distance@~cite[levenshtein-distance] as a
+measure of password correctness. This metric measures the number of one-character
+changes---insertions, deletions, or substitutions---that are necessary to change one
+string into another. So, for instance, if the student omitted one character and replaced
+an `a' with an `e' but was otherwise correct, the Levenshtein distance would be computed
+as two. We then divided this by the number of characters in the password to obtain a
+measure of error that ranges from 0, representing a correct password entry, to 1.0,
+representing an entirely wrong password.
+
+
+In order to measure the speed of password 
+
+
+@section{Reproducibility}
+
+We have made every effort to ensure that our work is entirely reproducible, making
+available all code involved in password generation and experimentation, and also
+the raw (anonymized) data collected during the experiment.
+
+FIXME urls here!
+
 
 @section{Related Work}
 
@@ -576,12 +678,7 @@ pronounceable text without the (heretofore) attendant lack of equi-probability.
 
 @section{Future Work}
 
-There's a giant piece of future work here: specifically, we wave our hands
-and suggest that our passwords are more memorable than those generated by
-other schemes. Naturally, a claim like this cannot simply be taken as
-true; we must conduct a test to verify this claim. 
-
-We are currently building the tools to allow us to conduct this study.
+FIXME
 
 @section{Acknowledgments}
 

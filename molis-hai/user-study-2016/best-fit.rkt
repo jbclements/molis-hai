@@ -2,7 +2,8 @@
 
 (require math/statistics
          math/flonum
-         plot)
+         plot
+         racket/date)
 
 ;; this file tries to determine the "best-fit" l for each user.
 ;; see below for the details of the one-parameter model.
@@ -15,23 +16,33 @@
     (raise-argument-error 'optimize
                           "shifted sequence"
                           0 seq))
-    (define fit (seq->fit seq))
-    (define dfit/dl (D/dx fit))
-    (define candidates (append (candidates-a dfit/dl seq)
-                               (list
-                                (last-candidate dfit/dl seq))))    
-    (define best (argmin fit candidates))
-    (list best (fit best)))
+  (when (completely-wrong? seq)
+    (raise-argument-error 'optimize
+                          "sequence where err is not uniformly 1"
+                          0 seq))
+  (define fit (seq->fit seq))
+  (define dfit/dl (D/dx fit))
+  (define candidates (append (candidates-a dfit/dl seq)
+                             (list
+                              (last-candidate dfit/dl seq))))    
+  (define best (argmin fit candidates))
+  (list best (fit best)))
 
+;; return true for sequences whose error values are uniformly 1
+(define (completely-wrong? seq)
+  (andmap (λ (samp) (= (py samp) 1)) seq))
+
+(define (px v) (vector-ref v 0))
+(define (py v) (vector-ref v 1))
 
 ;; given a sequence of vectors of length two #(x_i y_i),
 ;; subtract x_0 from each x so that the sequence starts at
 ;; time zero, and change y_0 to be 1.
 (define (shift-seq seq)
-  (define t0 (vector-ref (first seq) 0))
+  (define t0 (px (first seq)))
   (cons (vector 0 1)
         (for/list ([pt (in-list (rest seq))])
-          (vector (- (vector-ref pt 0) t0) (vector-ref pt 1)))))
+          (vector (- (px pt) t0) (py pt)))))
 
 
 ;; the model in this case is a one-parameter model, defining this
@@ -110,8 +121,8 @@
 (define (candidates-a dfit/dx seq)
   (for/list ([pt1 (in-list seq)]
              [pt2 (in-list (rest seq))])
-    (define pt1x (vector-ref pt1 0))
-    (define pt2x (vector-ref pt2 0))
+    (define pt1x (px pt1))
+    (define pt2x (px pt2))
     (best-in-interval dfit/dx pt1x pt2x)))
 
 ;; in the interval starting at the last point in the sequence
@@ -121,12 +132,13 @@
 ;; where the derivative is positive, and then call bracketed-root
 (define (last-candidate dfit/dx example-sequence)
   (define lastpt (last example-sequence))
-  (define lastptx (vector-ref lastpt 0))
+  (define lastptx (px lastpt))
   (define lastderiv (dfit/dx (bump+ lastptx)))
   (cond [(< lastderiv 0)
          (flbracketed-root dfit/dx
                            (exact->inexact lastptx)
-                           (exact->inexact (find-positive dfit/dx lastptx)))]
+                           (exact->inexact
+                            (find-positive dfit/dx lastptx)))]
         [else lastptx]))
 
 ;; given a sequence, compute the best-fit l and overlay that line on the
@@ -134,7 +146,7 @@
 (define (plot-best-fit seq)
   (define b (optimize seq))
   (define b-points `(#(0 1) #(,(first b) 0)))
-  (define x-max (* 1.1 (vector-ref (last seq) 0)))
+  (define x-max (* 1.1 (px (last seq))))
   (plot (list (points (shift-seq seq))
               (lines (shift-seq seq) #:color 0)
               (lines b-points #:color 1))
@@ -145,7 +157,7 @@
 
 (define (plot-fit seq)
   (define fit (seq->fit seq))
-  (define x-max (* 1.1 (vector-ref (last seq) 0)))
+  (define x-max (* 1.1 (px (last seq))))
   (plot (list (function fit)
               (function (λ (x) 0.0)))
           #:width 1300
@@ -216,35 +228,175 @@
 
   )
 
+
 (define d (file->value "/tmp/timesequences.rktd"))
 
-(define longenough
-  (filter (λ (d) (< 2 (length (second d)))) d))
+(define (experimental-group? record)
+  (< 13 (first record)))
 
-(length longenough)
+;; seconds offset for PST:
+(define PST (* -8 3600))
 
-(define meanerrs
-  (for/list ([person (in-list longenough)])
-    (list (< (first person) 13)
-          (mean
-           (rest (map (λ (p) (vector-ref p 1)) (second person)))))))
+;; days in february with tests:
+(define feb-days '(3 5 8 10 12 16 17 19 22 24 26))
 
-(define groupa (map second (filter (λ (p) (first p)) meanerrs)))
-(define groupb (map second (filter (λ (p) (not (first p))) meanerrs)))
+(define test-day-ends
+  (append
+   (for/list ([d (in-list feb-days)])
+     (find-seconds 0 0 0 (add1 d) 2 2016 PST))
+   (list (find-seconds 0 0 0 1 3 2016 PST)
+         (find-seconds 0 0 0 3 3 2016 PST))))
 
-(plot (list (density groupa #:color 1)
-            (density groupb #:color 2)))
+(plot (list
+       (density
+        (map (λ (pt) (px pt)) (apply append (map second d)))
+        0.05)
+       (points (for/list ([tde (in-list test-day-ends)])
+                 (vector tde 1e-6))))
+      
+      #:width 1200)
 
-(for ([record (in-list longenough)]
+(define (has-early-practice? trace)
+  (< 2 (length (filter (λ (pt) (< (px pt) 1e6)) trace))))
+
+(define (longest-gap seq)
+  (apply max
+         (for/list ([a (in-list seq)]
+                    [b (in-list (rest seq))])
+           (- (px b) (px a)))))
+
+(define (no-giant-gaps? trace)
+  (< (longest-gap trace) (* 8 86400)))
+
+(define good-traces
+  (for*/list ([record (in-list d)]
+              [seq (in-value (second record))]
+              #:when (< 2 (length seq))
+              [shifted (in-value (shift-seq seq))]
+              #:when (not (completely-wrong? shifted))
+              ;#:when (has-early-practice? shifted)
+              ;#:when (no-giant-gaps? shifted)
+              )
+    (list (first record) shifted)))
+
+(length good-traces)
+
+
+
+#;(for ([record (in-list good-traces)]
       [i (in-naturals)])
-  (define seq (shift-seq (second record)))
-  (match-define (list seconds-to-learn fit) (optimize seq))
-  (begin
-    (printf "processing #: ~v\n" i)
-    (display (plot-best-fit seq))
-    (newline)
-    (printf "l in days, fit: ~v, ~v\n" (/ seconds-to-learn 86400) fit)))
+    (define seq (second record))
+    (match-define (list seconds-to-learn fit) (optimize seq))
+    (begin
+      (printf "processing #: ~v\n" i)
+      (display (plot-best-fit seq))
+      (newline)
+      (printf "l in days, fit: ~v, ~v\n" (/ seconds-to-learn 86400) fit)))
 
+(define experimental-traces
+  (filter experimental-group? good-traces))
+(printf "number of experimental traces: ~v\n"
+        (length experimental-traces))
+
+(define control-traces
+  (filter (λ (t) (not (experimental-group? t))) good-traces))
+(printf "number of control traces: ~v\n" (length control-traces))
+
+;; oh boy. Okay, taking a look at fraction of people
+;; who got n% correct in each training.
+
+(require racket/block)
+(block
+ ;; return the last point in the interval, or #f if none exists:
+ (define (last-in-interval start-sec end-sec seq)
+   (let loop ([remaining seq] [previous #f])
+     (cond [(empty? remaining) previous]
+           ;; too early:
+           [(< (px (first remaining)) start-sec)
+            (loop (rest remaining) #f)]
+           ;; in the interval:
+           [(< start-sec (px (first remaining)) end-sec)
+            (loop (rest remaining) (first remaining))]
+           ;; past the interval:
+           [else previous])))
+ ;; these aren't shifted...
+ (define control-seqs
+   (map second (filter (λ (rec) (not (experimental-group? rec))) d)))
+ (define experimental-seqs
+   (map second (filter experimental-group? d)))
+ (define (n%points seqs thresh)
+   (for/list ([test-start (in-list (cons 0 test-day-ends))]
+              [test-day-end (in-list test-day-ends)])
+     (define errs
+       (map py
+            (filter
+             (λ (x) x)
+             (for/list ([c (in-list seqs)])
+               (last-in-interval test-start test-day-end c)))))
+     (vector
+      test-day-end
+      (/ (length (filter (λ (e) (<= e thresh)) errs))
+         (length errs)))))
+ (for/list ([i 11])
+   (define thresh (* 0.1 i))
+   (define control-pct-pts (n%points control-seqs thresh))
+   (define experimental-pct-pts (n%points experimental-seqs thresh))
+   (printf "less than or equal to ~v% error:\n"
+           (* 10 i))
+   (display
+    (plot (list
+           (points control-pct-pts)
+           (lines control-pct-pts
+                  #:color 1)
+           (points experimental-pct-pts)
+           (lines experimental-pct-pts
+                  #:color 0))
+          
+          #:width 1000))
+   (newline)))
+
+
+;; mean # of errors
+
+(define (meanerrs person)
+  (mean (rest (map py (second person)))))
+
+(define experimental-meanerrs (map meanerrs experimental-traces))
+(define control-meanerrs (map meanerrs control-traces))
+
+(plot (list (density experimental-meanerrs #:color 0)
+            (density control-meanerrs #:color 1)))
+
+
+
+
+
+
+(define (traces-points traces)
+  (filter
+   (λ (x) (< (py x) 0.05))
+   (for/list ([record (in-list traces)])
+     (define seq (shift-seq (second record)))
+     (list->vector (optimize seq)))))
+
+(define experimental-points (traces-points experimental-traces))
+(define control-points (traces-points control-traces))
+
+(plot (list (points experimental-points #:color 0)
+            (points control-points #:color 1)))
+
+(plot (list
+       (density (map (λ (p) (px p)) experimental-points)
+                0.3
+                #:color 0)
+       (density (map (λ (p) (px p)) control-points)
+                0.3
+                #:color 1)))
+
+#;(take experimental-traces 10)
+
+#;(plot (list (density '(3 4 3 4) #:color 0)
+            (density '(7 8) #:color 1)))
 
 
 
