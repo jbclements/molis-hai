@@ -12,8 +12,22 @@
              #:date "2097"
              #:location "Add a real reference here..."))
 
-(define osf-registration bogus-ref)
-(define levenshtein-distance bogus-ref)
+(define osf-registration
+  (make-bib #:title "Molis Hai Memorability"
+            #:author "DANNY BOGUS"
+            #:date "2016"
+            #:location "at URL: https://nsf.io/EXAMPLE"))
+
+
+(define levenshtein-distance
+  (make-bib #:author "Vladimir I. Levenshtein"
+            #:title "Binary codes capable of correcting deletions, insertions, and reversals"
+            #:date 1966
+            #:location
+            (journal-location "Soviet Physics Doklady"
+                              #:volume 10
+                              #:number 8)))
+
 
 (define bonneau-guessing-phd 
   (make-bib #:title "Guessing human-chosen secrets"
@@ -72,12 +86,12 @@
   (make-bib #:title "Password Strength, XKCD #936"
             #:author "Randall Monroe"
             #:date 2011
-            #:location "on the web: http://www.xkcd.com/936/"))
+            #:location "at URL: https://www.xkcd.com/936/"))
 
 (define ridyhew 
   (make-bib #:title "RIDYHEW. The RIDiculouslY Huge English Wordlist"
             #:author "Chris Street"
-            #:location "on the web: http://www.codehappy.net/wordlist.htm"))
+            #:location "at URL: http://www.codehappy.net/wordlist.htm"))
 
 (define nist-passwords
   (make-bib #:title "Automated Password Generator"

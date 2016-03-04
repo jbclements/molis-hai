@@ -20,11 +20,15 @@
     (raise-argument-error 'optimize
                           "sequence where err is not uniformly 1"
                           0 seq))
-  (define fit (seq->fit seq))
+  (define flseq (map (λ (pt)
+                       (vector (exact->inexact (px pt))
+                               (exact->inexact (py pt))))
+                     seq))
+  (define fit (seq->fit flseq))
   (define dfit/dl (D/dx fit))
-  (define candidates (append (candidates-a dfit/dl seq)
+  (define candidates (append (candidates-a dfit/dl flseq)
                              (list
-                              (last-candidate dfit/dl seq))))    
+                              (last-candidate dfit/dl flseq))))    
   (define best (argmin fit candidates))
   (list best (fit best)))
 
@@ -74,7 +78,7 @@
 
 ;; following suggestion from Jens Axel Søegaard, using root-finder instead:
 
-(define EPSILON 1e-4)
+(define EPSILON 1e-9)
 (define (bump+ x) (+ x EPSILON))
 (define (bump- x) (- x EPSILON))
 
@@ -143,24 +147,38 @@
 
 ;; given a sequence, compute the best-fit l and overlay that line on the
 ;; sequence graph
-(define (plot-best-fit seq)
+(define (plot-best-fit seq i)
   (define b (optimize seq))
   (define b-points `(#(0 1) #(,(first b) 0)))
   (define x-max (* 1.1 (px (last seq))))
-  (plot (list (points (shift-seq seq))
-              (lines (shift-seq seq) #:color 0)
-              (lines b-points #:color 1))
-        
-        #:x-max x-max
-        #:width 1300
-        #:y-min 0))
+  (display
+   (plot (list (points (shift-seq seq))
+               (lines (shift-seq seq))
+               (lines b-points #:style 'short-dash))
+         #:x-label "days since beginning of participation"
+         #:y-label "error fraction"
+         #:x-max x-max
+         #:width PRINTING-WIDTH
+         #:y-min 0))
+  (newline)
+  (plot-file
+   (list (points (shift-seq seq))
+         (lines (shift-seq seq))
+         (lines b-points #:style 'short-dash))
+   #:x-label "days since beginning of participation"
+   #:y-label "error fraction"
+   #:x-max x-max
+   #:width PRINTING-WIDTH
+   #:y-min 0
+   (format "/tmp/best-fit-~v.pdf" i)))
+
 
 (define (plot-fit seq)
   (define fit (seq->fit seq))
   (define x-max (* 1.1 (px (last seq))))
   (plot (list (function fit)
               (function (λ (x) 0.0)))
-          #:width 1300
+          #:width PRINTING-WIDTH
           #:x-min 1
           #:x-max x-max
           #:y-min 0))
@@ -181,7 +199,7 @@
   #;(plot (list (points shifted-sequence)
               (lines shifted-sequence))
         #:x-max (* 2 1000000)
-        #:width 1300)
+        #:width PRINTING-WIDTH)
   
   
   (define test-fit (seq->fit example-sequence))
@@ -199,14 +217,14 @@
   
   
   #;(plot (function test-fit)
-        #:width 1300
+        #:width PRINTING-WIDTH
         #:x-min 1
         #:x-max (* 2 1000000)
         #:y-min 0)
   
   #;(plot (list (function (D/dx test-fit))
               (function (λ (x) 0.0)))
-        #:width 1300
+        #:width PRINTING-WIDTH
         #:x-min 1
         #:x-max 1200000
         #:y-min -5e-8)
@@ -215,7 +233,7 @@
     (< (abs (- x y)) eps))
   ;; REGRESSION TESTING:
   (check-match (optimize example-sequence)
-               (list (? (close-to 514286 1.0) _1)
+               (list (? (close-to 512000 1000.0) _1)
                      (? (close-to 0.022 1e-3))))
 
   (define off-rhs-example
@@ -231,16 +249,74 @@
 
 (define d (file->value "/tmp/timesequences.rktd"))
 
-(define (experimental-group? record)
-  (< 13 (first record)))
 
 ;; seconds offset for PST:
 (define PST (* -8 3600))
 
+(define experiment-start (find-seconds 0 0 0 3 2 2016 PST))
+
+(define SECONDS-IN-DAY 86400)
+
+(define PRINTING-WIDTH 1200)
+
+(define SESSION-THRESHOLD 3)
+;; these have a time coordinate expressed as days since
+;; beginning of experiment
+(define d2
+  (for/list ([record (in-list d)]
+             #:when (<= SESSION-THRESHOLD (length (second record))))
+    (list (first record)
+          (for/list ([pt (in-list (second record))])
+            (when (< (px pt) experiment-start)
+              (error 'adjusting
+                     "expected all points to be after ~v, got: "
+                     experiment-start pt))
+            (vector (/ (- (px pt) experiment-start)
+                       SECONDS-IN-DAY)
+                    (py pt))))))
+
+(define (experimental-group? record)
+  (< 13 (first record)))
+
+(require racket/block)
+(block
+ (define (perturb-y pt)
+   (vector (px pt) (+ (* 0.05 (/ (- (random 100) 50) 100))
+                      (py pt))))
+ (define (display-seqs filename data)
+   (define perturbed
+     (map (λ(seq) (map perturb-y seq)) data))
+   (display
+    (plot (append
+           (map lines perturbed)
+           (map points perturbed))
+          #:width PRINTING-WIDTH
+          #:x-label "days since beginning of experiment"
+          #:y-label "error fraction"))
+   (plot-file
+    (append
+     (map lines perturbed)
+     (map points perturbed))
+    #:width PRINTING-WIDTH
+    #:x-label "days since beginning of experiment"
+    #:y-label "error fraction"
+    (~a "/tmp/" filename)))
+ ;; these aren't shifted...
+ (define control-seqs
+   (map second (filter (λ (rec) (not (experimental-group? rec))) d2)))
+ (display-seqs "control-group-sequences.pdf" control-seqs)
+ (define experimental-seqs
+   (map second (filter experimental-group? d2)))
+ (display-seqs "experimental-group-sequences.pdf" experimental-seqs))
+
+
+
 ;; days in february with tests:
 (define feb-days '(3 5 8 10 12 16 17 19 22 24 26))
+(define test-dayzz
+  (map (λ (x) (- x 2)) (append feb-days '(30 32))))
 
-(define test-day-ends
+(define test-day-ends/seconds
   (append
    (for/list ([d (in-list feb-days)])
      (find-seconds 0 0 0 (add1 d) 2 2016 PST))
@@ -249,15 +325,15 @@
 
 (plot (list
        (density
-        (map (λ (pt) (px pt)) (apply append (map second d)))
+        (map (λ (pt) (px pt)) (apply append (map second d2)))
         0.05)
-       (points (for/list ([tde (in-list test-day-ends)])
-                 (vector tde 1e-6))))
+       (points (for/list ([tde (in-list test-dayzz)])
+                 (vector tde 0.1))))
       
-      #:width 1200)
+      #:width PRINTING-WIDTH)
 
 (define (has-early-practice? trace)
-  (< 2 (length (filter (λ (pt) (< (px pt) 1e6)) trace))))
+  (< 2 (length (filter (λ (pt) (< (px pt) (/ 1e6 SECONDS-IN-DAY))) trace))))
 
 (define (longest-gap seq)
   (apply max
@@ -266,16 +342,14 @@
            (- (px b) (px a)))))
 
 (define (no-giant-gaps? trace)
-  (< (longest-gap trace) (* 8 86400)))
+  (< (longest-gap trace) 8))
 
 (define good-traces
-  (for*/list ([record (in-list d)]
+  (for*/list ([record (in-list d2)]
               [seq (in-value (second record))]
-              #:when (< 2 (length seq))
+              ;#:when (< 5 (length seq))
               [shifted (in-value (shift-seq seq))]
               #:when (not (completely-wrong? shifted))
-              ;#:when (has-early-practice? shifted)
-              ;#:when (no-giant-gaps? shifted)
               )
     (list (first record) shifted)))
 
@@ -283,15 +357,16 @@
 
 
 
-#;(for ([record (in-list good-traces)]
+(for ([record (in-list good-traces)]
       [i (in-naturals)])
-    (define seq (second record))
-    (match-define (list seconds-to-learn fit) (optimize seq))
+  (define seq (second record))
+  (when (< 2 (length seq) 6)
+    (match-define (list days-to-learn fit) (optimize seq))
     (begin
       (printf "processing #: ~v\n" i)
-      (display (plot-best-fit seq))
+      (plot-best-fit seq i)
       (newline)
-      (printf "l in days, fit: ~v, ~v\n" (/ seconds-to-learn 86400) fit)))
+      (printf "l in days, fit: ~v, ~v\n" days-to-learn fit))))
 
 (define experimental-traces
   (filter experimental-group? good-traces))
@@ -321,12 +396,12 @@
            [else previous])))
  ;; these aren't shifted...
  (define control-seqs
-   (map second (filter (λ (rec) (not (experimental-group? rec))) d)))
+   (map second (filter (λ (rec) (not (experimental-group? rec))) d2)))
  (define experimental-seqs
-   (map second (filter experimental-group? d)))
+   (map second (filter experimental-group? d2)))
  (define (n%points seqs thresh)
-   (for/list ([test-start (in-list (cons 0 test-day-ends))]
-              [test-day-end (in-list test-day-ends)])
+   (for/list ([test-start (in-list (cons 0 test-dayzz))]
+              [test-day-end (in-list test-dayzz)])
      (define errs
        (map py
             (filter
@@ -351,9 +426,23 @@
            (points experimental-pct-pts)
            (lines experimental-pct-pts
                   #:color 0))
-          
-          #:width 1000))
-   (newline)))
+          #:y-max 1.0
+          #:width PRINTING-WIDTH
+          #:x-label "days since beginning of experiment"
+          #:y-label "fraction of students below error threshold"))
+   (newline)
+   (plot-file
+    (list
+     (points control-pct-pts)
+     (lines control-pct-pts
+            #:style 'short-dash)
+     (points experimental-pct-pts)
+     (lines experimental-pct-pts))
+    #:y-max 1.0
+    #:width PRINTING-WIDTH
+    #:x-label "days since beginning of experiment"
+    #:y-label "fraction of students below error threshold"
+    (format "/tmp/pct-below-~v-thresh.pdf" (* 10 i)))))
 
 
 ;; mean # of errors
@@ -368,13 +457,15 @@
             (density control-meanerrs #:color 1)))
 
 
-
+#;(for/list ([t (in-list experimental-traces)])
+  (define seq (second t))
+  (match-define (list l fit) ))
 
 
 
 (define (traces-points traces)
   (filter
-   (λ (x) (< (py x) 0.05))
+   (λ (x) (< (py x) 100))
    (for/list ([record (in-list traces)])
      (define seq (shift-seq (second record)))
      (list->vector (optimize seq)))))
@@ -387,11 +478,26 @@
 
 (plot (list
        (density (map (λ (p) (px p)) experimental-points)
-                0.3
-                #:color 0)
+                0.1
+                #:color 0
+                #:style 'solid)
        (density (map (λ (p) (px p)) control-points)
-                0.3
-                #:color 1)))
+                0.1
+                #:color 1
+                #:style 'short-dash))
+      #:width PRINTING-WIDTH)
+(plot-file
+ (list
+  (density (map (λ (p) (px p)) experimental-points)
+           0.1
+           #:style 'solid)
+  (density (map (λ (p) (px p)) control-points)
+           0.1
+           #:style 'short-dash))
+ #:width PRINTING-WIDTH
+ #:x-label "estimated days to learn password"
+ #:y-label "density of points"
+ "/tmp/time-to-learn.pdf")
 
 #;(take experimental-traces 10)
 
