@@ -10,6 +10,9 @@
              "bogus@example.com"
              #;"clements@brinckerhoff.org")}
 
+@(define scaleparam 0.9)
+@(define halfscaleparam (* scaleparam 0.5))
+
 @(require scriblib/footnote
           scriblib/figure
           "bib.rkt"
@@ -630,11 +633,11 @@ should be.
 
 @figure*["control-seqs"
         (list "performance of control group in first box")]{
-@image[#:scale 0.4 "control-group-sequences.pdf"]}
+@image[#:scale scaleparam "control-group-sequences.pdf"]}
 
 @figure*["experimental-seqs"
         (list "performance of experimental group in first box")]{
-@image[#:scale 0.4 "experimental-group-sequences.pdf"]}
+@image[#:scale scaleparam "experimental-group-sequences.pdf"]}
 
 
 
@@ -778,13 +781,14 @@ is then defined by the functions @${f_l}:
    \right.}|
 
 For each student, we chose the value of @${l} that minimized the
-mean-square distance between the sample points and the fitted line.
+mean-square distance between the sample points and the fitted line
+segments.
 
 @figure["best-fits"
         "student traces and best-fit model for three students"]{
-@image[#:scale 0.2 "best-fit-1.pdf"]
-@image[#:scale 0.2 "best-fit-2.pdf"]
-@image[#:scale 0.2 "best-fit-4.pdf"]}
+@image[#:scale halfscaleparam "best-fit-1.pdf"]
+@image[#:scale halfscaleparam "best-fit-2.pdf"]
+@image[#:scale halfscaleparam "best-fit-4.pdf"]}
 
 @Figure-ref["best-fits"] shows examples of the best-fit model for
 three different students. The first one learns slowly, with an estimated
@@ -792,11 +796,14 @@ time of about 23 days to learn. The second (more typical) one learns
 quickly, with an estimated time of about 6.5 days to learn. The third
 one illustrates one of the problems with the model; the best fit shows
 that learning took 6 days, despite clear problems in recall in later
-experiments.
+experiments.@note{The fit of this model is unintuitive; it appears that
+moving the intercept to the right would produce a better fit, given the
+ penalty associated with the later points. Curiously, this is
+not the case.}
 
 @figure*["time-to-learn"
         (list "estimated learning times (control group dashed lines)")]{
-@image[#:scale 0.4 "time-to-learn.pdf"]}
+@image[#:scale scaleparam "time-to-learn.pdf"]}
 
 Noisy data notwithstanding, we computed a value of @${l} for each
 member of the control and experimental group. @Figure-ref["time-to-learn"]
@@ -805,7 +812,8 @@ convolve a graph of impulse functions with normal kernels to show a
 "smoothed" density graph. Each group's density curve has an integral
 of 1.@note{We adopt this alternative to a histogram in order to avoid
 the inevitable bias that occurs as a result of the selection of bin
-boundaries.} The control group is shown as a dashed line.
+boundaries.} The control group is shown with a dashed line, and the
+experimental group with a solid one.
 
 Omitted from this graph is one subject who entered his or her password
 incorrectly with perfect consistency, leading to an estimated learning
@@ -838,13 +846,15 @@ among the very quickest learners.
 
 @subsubsection{Retention}
 
-Our second stated hypothesis was that students would retain their
-passwords better in the experimental group. The final piece of this
-experiment is a delay of two weeks, after which the students will
-be asked (in the context of the class final exam) to produce their
-password (on an anonymous slip of paper). This will provide a measure
-of password retention. As a side benefit, it may also help to identify
-those that were cheating by recording their password in digital form.
+Our second stated hypothesis was that students would retain
+their passwords better in the experimental group. The final
+element of this experiment---not yet completed---is a delay of
+two weeks, after which the students will be asked (in the
+context of the class final exam) to produce their password
+(on an anonymous slip of paper). This will provide a measure
+of password retention. As a side benefit, it may also help
+to identify those that were cheating by recording their
+password in digital form.
 
 @subsection{Data Mining}
 
@@ -857,9 +867,9 @@ What follows, then, is not a test of a hypothesis, but rather simply
 a set of observations that might lead to further hypotheses.
 
 @figure*["20-percent-error"
-        (list "fraction of students with less than 20% error (control dashed)"
+        (list "fraction of students with less than 20% error (control group dashed)"
               )]{
-@image[#:scale 0.4 "pct-below-20-thresh.pdf"]}
+@image[#:scale scaleparam "pct-below-20-thresh.pdf"]}
 
 Our inspection of the graphs in @figure-ref["control-seqs"] and
 @figure-ref["experimental-seqs"], along with our analysis of estimated
@@ -883,30 +893,31 @@ that focuses on this aspect of the project.
 Naturally, any study with live subjects is subject to threats to validity
 both internal and external.
 
-One potential internal threat to validity arises as a result of possible
-cheating. It its certainly possible for students to copy and paste the
-passwords from the web page. We do not see much evidence of this, both
-in that only one student appears to have learned the password after one
-session, and also in that our keystroke data shows only one instance in
-which the password "appeared" in exactly one keystroke. Additionally,
-we see no reason to expect the experimental group to cheat more than
+One potential internal threat to validity arises as a result
+of possible cheating. It its certainly possible for students
+to copy and paste the passwords from the web page. We do not
+see much evidence of this, both in that only one student
+appears to have learned the password after one session, and
+also in that our keystroke data shows only one instance in
+which the password "appeared" in exactly one keystroke.
+Additionally, the experimental setting (in lab) should help
+to dissuade students from cheating. Finally, we see no
+reason to expect the experimental group to cheat more than
 the control group, or vice versa.
 
+Another potential internal threat to validity concerns the
+frequency of participation. Some students participated in
+every session, and others only in a few. A tighter
+distribution might arise from an experiment that required
+all students to participate in all sessions.
 
-@subsection{Cheating}
-
-The reader may wonder, at this point, whether the students
-cheated. Certainly, they could have copied the web page from
-the prompt, and memorized it offline, or simply pasted it
-into place. In our 
-
-However, we saw little evidence of this. The students
-participated in a lab setting, which may have inclined them
-toward honesty. Also, no course credit was associated with
-performance in the experiment.
-
-Finally, we believe that cheating---if it occurred---would
-be equally likely among the control and experimental group.
+An external threat to validity arises from the makeup of
+the experimental population. As upper-level computer science
+students, it's reasonable to suspect that these subjects
+will be much better at learning passwords than the
+population at large. However, we do not think that this will
+affect the relative performance of the control and
+experimental groups.
 
 @section{Reproducibility}
 
@@ -957,12 +968,33 @@ of testing this would be to perform a paired test, where each student
 was required to learn both a string from the control set and one from
 the experimental set.
 
+Finally, another potential use of the system, leveraging the human
+ability to rapidly ingest written text, is in the generation of
+fingerprints for encryption keys.
+
+As an example, here's the SHA1 fingerprint of a certificate,
+represented as a hexadecimal string:
+
+@verbatim{46:DC:1D:39:45:88:2A:6B:90:D2:AC:9E:0A:81:
+ 5E:9A:33:26:03:B1}
+
+... and here's the same fingerprint, represented as a molis hai
+string (using the same order-2 model associated with the experiment):
+
+@verbatim{on, satinusibe his saingespards blin fevis not not beavi}
+
+We conjecture that a user is much more likely to be able to rapidly
+compare fingerprints expressed in this way.
+
+Further experimentation required!
 
 @section{Acknowledgments}
 
 Many thanks to REDACTED for instantly pinpointing
 relevant research. Many thanks to REDACTED for being an
-amazing programming language.
+amazing programming language. Many thanks to REDACTED,
+REDACTED, and REDACTED for helpful discussions on how best
+to analyze the data.
 
 @(generate-bibliography)
 

@@ -158,7 +158,7 @@
          #:x-label "days since beginning of participation"
          #:y-label "error fraction"
          #:x-max x-max
-         #:width PRINTING-WIDTH
+         #:width SCREEN-WIDTH
          #:y-min 0))
   (newline)
   (plot-file
@@ -169,6 +169,7 @@
    #:y-label "error fraction"
    #:x-max x-max
    #:width PRINTING-WIDTH
+   #:height PRINTING-HEIGHT
    #:y-min 0
    (format "/tmp/best-fit-~v.pdf" i)))
 
@@ -178,7 +179,7 @@
   (define x-max (* 1.1 (px (last seq))))
   (plot (list (function fit)
               (function (λ (x) 0.0)))
-          #:width PRINTING-WIDTH
+          #:width SCREEN-WIDTH
           #:x-min 1
           #:x-max x-max
           #:y-min 0))
@@ -199,7 +200,7 @@
   #;(plot (list (points shifted-sequence)
               (lines shifted-sequence))
         #:x-max (* 2 1000000)
-        #:width PRINTING-WIDTH)
+        #:width SCREEN-WIDTH)
   
   
   (define test-fit (seq->fit example-sequence))
@@ -217,14 +218,14 @@
   
   
   #;(plot (function test-fit)
-        #:width PRINTING-WIDTH
+        #:width SCREEN-WIDTH
         #:x-min 1
         #:x-max (* 2 1000000)
         #:y-min 0)
   
   #;(plot (list (function (D/dx test-fit))
               (function (λ (x) 0.0)))
-        #:width PRINTING-WIDTH
+        #:width SCREEN-WIDTH
         #:x-min 1
         #:x-max 1200000
         #:y-min -5e-8)
@@ -257,7 +258,9 @@
 
 (define SECONDS-IN-DAY 86400)
 
-(define PRINTING-WIDTH 1200)
+(define SCREEN-WIDTH 1200)
+(define PRINTING-WIDTH (round (* 4/9 SCREEN-WIDTH)))
+(define PRINTING-HEIGHT (round (* 4/9 (plot-height))))
 
 (define SESSION-THRESHOLD 3)
 ;; these have a time coordinate expressed as days since
@@ -290,7 +293,7 @@
     (plot (append
            (map lines perturbed)
            (map points perturbed))
-          #:width PRINTING-WIDTH
+          #:width SCREEN-WIDTH
           #:x-label "days since beginning of experiment"
           #:y-label "error fraction"))
    (plot-file
@@ -298,6 +301,7 @@
      (map lines perturbed)
      (map points perturbed))
     #:width PRINTING-WIDTH
+    #:height PRINTING-HEIGHT
     #:x-label "days since beginning of experiment"
     #:y-label "error fraction"
     (~a "/tmp/" filename)))
@@ -330,7 +334,7 @@
        (points (for/list ([tde (in-list test-dayzz)])
                  (vector tde 0.1))))
       
-      #:width PRINTING-WIDTH)
+      #:width SCREEN-WIDTH)
 
 (define (has-early-practice? trace)
   (< 2 (length (filter (λ (pt) (< (px pt) (/ 1e6 SECONDS-IN-DAY))) trace))))
@@ -360,13 +364,12 @@
 (for ([record (in-list good-traces)]
       [i (in-naturals)])
   (define seq (second record))
-  (when (< 2 (length seq) 6)
-    (match-define (list days-to-learn fit) (optimize seq))
-    (begin
-      (printf "processing #: ~v\n" i)
-      (plot-best-fit seq i)
-      (newline)
-      (printf "l in days, fit: ~v, ~v\n" days-to-learn fit))))
+  (match-define (list days-to-learn fit) (optimize seq))
+  (begin
+    (printf "processing #: ~v\n" i)
+    (plot-best-fit seq i)
+    (newline)
+    (printf "l in days, fit: ~v, ~v\n" days-to-learn fit)))
 
 (define experimental-traces
   (filter experimental-group? good-traces))
@@ -427,9 +430,9 @@
            (lines experimental-pct-pts
                   #:color 0))
           #:y-max 1.0
-          #:width PRINTING-WIDTH
+          #:width SCREEN-WIDTH
           #:x-label "days since beginning of experiment"
-          #:y-label "fraction of students below error threshold"))
+          #:y-label "fraction of students"))
    (newline)
    (plot-file
     (list
@@ -440,8 +443,9 @@
      (lines experimental-pct-pts))
     #:y-max 1.0
     #:width PRINTING-WIDTH
+    #:height PRINTING-HEIGHT
     #:x-label "days since beginning of experiment"
-    #:y-label "fraction of students below error threshold"
+    #:y-label "fraction of students"
     (format "/tmp/pct-below-~v-thresh.pdf" (* 10 i)))))
 
 
@@ -485,7 +489,8 @@
                 0.1
                 #:color 1
                 #:style 'short-dash))
-      #:width PRINTING-WIDTH)
+      #:width SCREEN-WIDTH
+      )
 (plot-file
  (list
   (density (map (λ (p) (px p)) experimental-points)
@@ -495,7 +500,8 @@
            0.1
            #:style 'short-dash))
  #:width PRINTING-WIDTH
- #:x-label "estimated days to learn password"
+ #:height PRINTING-HEIGHT
+ #:x-label "days since beginning of experiment"
  #:y-label "density of points"
  "/tmp/time-to-learn.pdf")
 

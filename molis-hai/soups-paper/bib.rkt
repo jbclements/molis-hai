@@ -91,6 +91,7 @@
 (define ridyhew 
   (make-bib #:title "RIDYHEW. The RIDiculouslY Huge English Wordlist"
             #:author "Chris Street"
+            #:date 2003
             #:location "at URL: http://www.codehappy.net/wordlist.htm"))
 
 (define nist-passwords
