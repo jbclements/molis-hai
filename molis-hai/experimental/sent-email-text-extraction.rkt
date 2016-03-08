@@ -1,7 +1,7 @@
 #lang racket
 
 ;; this code is for extracting sent emails. More specifically,
-;; it extracts only non-quoted text from an mboxrd-formatted
+;; it extracts only non-quoted text from an mboxcl2-formatted
 ;; file (that is, the standard UNIX 'mbox' format.) If you
 ;; want to run this code, you'll have to install the mboxrd
 ;; package.
@@ -11,9 +11,6 @@
          net/mime
          (only-in net/unihead generalize-encoding))
 
-
-
-(define msg-stream (mboxrd-parse (string->path "/tmp/Sent")))
 
 
 ;; message -> (listof string)
@@ -96,6 +93,9 @@ and raw text:
   (filter only-mine paras))
 
 
+
+(define-values (closer msg-stream) (mboxcl2-parse (string->path "/tmp/sent/Sent Messages")))
+
 (define message-texts
   (call-with-output-file "/tmp/email-texts.txt"
     (lambda (port)
@@ -105,6 +105,8 @@ and raw text:
         (for ([para my-text-paras])
           (fprintf port "~a\n" para))))
     #:exists 'truncate))
+
+(closer)
 
 
 
