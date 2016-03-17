@@ -1,10 +1,12 @@
 #lang racket
 
+;; this file contains the code used to anonymize the logs and
+;; write them to a '.tsv' file. It uses the salt string appearing
+;; in /tmp/salt.txt.
 
-
-(require racket/runtime-path
-         db)
-
+#;(
+   (require db)
+   ;; experimenting with sqlite... this code is currently unused
 (define-runtime-path db-path "/tmp/log.db")
 
 (define conn
@@ -17,7 +19,7 @@ PRIMARY KEY, training_str TEXT);")
 
 (query-exec conn
             "CREATE TABLE keystrokes (server_ts INTEGER, key TEXT, \
-timestamp INTEGER, boxnum INTEGER, content TEXT, FOREIGN KEY (key) REFERENCES sessions);")
+timestamp INTEGER, boxnum INTEGER, content TEXT, FOREIGN KEY (key) REFERENCES sessions);"))
 
 ;server-timestamp key timestamp boxnum content
 
@@ -26,14 +28,14 @@ timestamp INTEGER, boxnum INTEGER, content TEXT, FOREIGN KEY (key) REFERENCES se
 
 
 
-(require 
-  sha
-  net/base64
-  threading
-  rackbot/tai64n
-  srfi/19
-  racket/block
-  racket/struct)
+(require racket/runtime-path
+         sha
+         net/base64
+         threading
+         rackbot/tai64n
+         srfi/19
+         racket/block
+         racket/struct)
 
 
 ;; these users are just a consequence of testing... ignore them.
@@ -71,15 +73,18 @@ just discover these from logs)."))
 
 ;; this salt is used to map uids to hashed strings, just to allow me to
 ;; look at the data without making names obvious
-(define uid-salt #"BJ\313\374\342")
+(define uid-salt (file->bytes "/tmp/salt.txt"))
 
 ;; remove '=\r\n' from base64-encoding
 (define (remove-last3 bytes)
   (match bytes
     [(regexp #px#"=\r\n$")
      (subbytes bytes 0 (- (bytes-length bytes) 3))]
-    [other (error 'remove-last3
-                  "unexpected last 3 chars")]))
+    [(regexp #px#"\r\n$")
+     (subbytes bytes 0 (- (bytes-length bytes) 2))]
+    [other (raise-argument-error 'remove-last3
+                                 "byte string ending with =\\r\\n or \\r\\n"
+                                 0 bytes)]))
 
 ;; a map from users to anonymized ids
 (define user-hash
@@ -89,7 +94,7 @@ just discover these from logs)."))
                 string->bytes/utf-8
                 (bytes-append uid-salt #"a")
                 sha224
-                (subbytes 0 2)
+                (subbytes 0 3)
                 base64-encode
                 remove-last3
                 bytes->string/utf-8))))
@@ -149,7 +154,7 @@ just discover these from logs)."))
 (define session-starts
   (filter session-start? log-lines))
 
-(for/list ([s (in-list session-starts)])
+#;(for/list ([s (in-list session-starts)])
   (apply query-exec conn "INSERT INTO sessions VALUES (?,?,?,?)"
          (struct->list s)))
 
