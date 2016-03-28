@@ -15,12 +15,16 @@
         #\ä "a"
         #\ö "o"
         #\é "e"
+        #\è "e"
         #\u2022 "."
         #\u25e6 "."
         #\u25aa "."
         #\π "pi"
+        #\u2da "degrees"
+        #\ua0 " "
+        #\ø "empty set"
         ))
-
-(de-unicode/path "/tmp/email-texts.txt"
+#px""
+(de-unicode/path "/tmp/bbb.txt" #;"email-texts.txt"
                  "/tmp/ascii-email-texts.txt"
                  #:char-mapping char-mapping)

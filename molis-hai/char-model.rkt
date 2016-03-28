@@ -16,9 +16,8 @@
                              -> (Model String Char)))
 (define (build-char-model n text good-start?)
   (define cleaned-text
-    (kill-quotes
-     (whitespace-crunch
-      text)))
+    (whitespace-crunch
+     text))
   (kvcount->model (n-letter-kvcount n cleaned-text)
                   good-start?))
 
@@ -78,14 +77,11 @@
 (define (string-rotate str chr)
   (substring (string-append str (string chr)) 1))
 
-(module* test typed/racket
-  (require (submod "..")
+(module+ test
+  (require #;(submod "..")
            "shared-types.rkt"
            "huffman.rkt"
            typed/rackunit)
-
-  
-
 
   ;; does this string start with a space?
   (: starts-with-space? (String -> Boolean))
@@ -109,10 +105,10 @@
    (lambda () (begin (build-char-model 2 "abcd efg"
                                        starts-with-space?) 'zzz)))
 
-  #;(check-equal? (whitespace-crunch "  a \t\nbc de   ")
+  (check-equal? (whitespace-crunch "  a \t\nbc de   ")
                 " a bc de ")
   
-  #;(check-equal? (kill-quotes "the \"only\" way")
+  (check-equal? (kill-quotes "the \"only\" way")
                 "the only way")
 
   (check-equal?

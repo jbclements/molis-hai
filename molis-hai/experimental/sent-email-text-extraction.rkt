@@ -9,6 +9,7 @@
 (require mboxrd-read
          net/head
          net/mime
+         net/qp
          (only-in net/unihead generalize-encoding))
 
 
@@ -20,11 +21,10 @@
 (define (only-text-parts analyzed raw-msg)
   (define (recur msg) (only-text-parts msg raw-msg))
   (define msg-entity (message-entity analyzed))
-  (entity-disposition msg-entity)
   (match (disposition-type (entity-disposition msg-entity))
     ['inline
      (match (entity-type msg-entity)
-       ['multipart 
+       ['multipart
         (match (entity-subtype msg-entity)
           ['alternative
            (define parts (entity-parts msg-entity))
@@ -36,7 +36,10 @@
            (recur (first parts))]
           ['related ;; For these... we'll try taking them all?
            (define parts (entity-parts msg-entity))
-           (apply append (map recur parts))])]
+           (apply append (map recur parts))]
+          ['signed
+           (recur (first
+                   (entity-parts msg-entity)))])]
        ['text
         (match (entity-subtype msg-entity)
           ['plain
@@ -49,13 +52,32 @@
                                 (fprintf (current-error-port)
                                          "error: ~v\n" exn)
                                 (raise exn)))]
-               (first
-                (regexp-match #px".*"
-                              (reencode-input-port
-                               (open-input-bytes body-bytes)
-                               (generalize-encoding (entity-charset msg-entity)))))))
+               (define charset
+                 (match (entity-charset msg-entity)
+                   ['us-ascii "us-ascii"]
+                   [(? string? s) s]
+                   [other (error 'only-text-parts
+                                 "unexpected charset: ~v\n"
+                                 (entity-charset msg-entity))]))
+               (define re-encoded
+                 (first
+                  (regexp-match #px".*"
+                                (reencode-input-port
+                                 (open-input-bytes body-bytes)
+                                 (generalize-encoding
+                                  charset)))))
+               (match (entity-encoding msg-entity)
+                 ['7bit re-encoded]
+                 ['quoted-printable
+                  (qp-decode re-encoded)]
+                 [other
+                  (error "unexpected encoding: ~v\n"
+                         (entity-encoding msg-entity))]
+                 )))
            (list body-str)]
-          ['html '()]
+          ['html
+           (printf "giving up on HTML text entity.\n")
+           '()]
           #;['csv (error 'decode 
                        "what the heck? ")])]
        ['application
@@ -79,7 +101,8 @@ and raw text:
            (regexp-match #px"^On [^,]+,.* wrote:$" str))))
 
 (define (extract-my-text msg)
-  (define text-parts (only-text-parts (mime-analyze msg) msg))
+  (define text-parts
+    (only-text-parts (mime-analyze msg) msg))
   (when (> (length text-parts) 1)
     (write text-parts)
     (newline)
@@ -94,19 +117,34 @@ and raw text:
 
 
 
-(define-values (closer msg-stream) (mboxcl2-parse (string->path "/tmp/sent/Sent Messages")))
 
-(define message-texts
+(define (process-file filename)
+  (define-values (closer msg-stream)
+    (mboxcl2-parse (string->path filename)
+                   #:fallback #t))
   (call-with-output-file "/tmp/email-texts.txt"
     (lambda (port)
       (for ([msg (in-stream msg-stream)])
         (define my-text-paras
-          (extract-my-text (apply bytes-append msg)))
+          (extract-my-text
+           (bytes-append (first msg)
+                         (regexp-replace* #rx"(\r\n|\n)"
+                                          ((second msg))
+                                          "\r\n"
+                                          ))))
         (for ([para my-text-paras])
           (fprintf port "~a\n" para))))
-    #:exists 'truncate))
+    #:exists 'append)  
+  (closer))
 
-(closer)
+(call-with-output-file "/tmp/email-texts.txt"
+  (λ (port) 13)
+  #:exists 'truncate)
+
+#;(process-file "/tmp/sent/Sent Messages")
+(process-file "/tmp/sent/Sent-computer")
+(process-file "/tmp/sent/Sent-falcon")
+
 
 
 
