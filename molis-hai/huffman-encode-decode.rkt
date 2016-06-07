@@ -180,7 +180,7 @@
 ;; given a list of bytes, compute the huffman tree
 (: compute-tree ((Listof Byte) -> (MyTree Byte)))
 (define (compute-tree loc)
-  (clump (countvec->treelist (loc->countvec loc))))
+  (build-huffman-tree (countvec->treelist (loc->countvec loc))))
 
 
 (set! bytesize 256)

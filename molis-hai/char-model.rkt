@@ -111,7 +111,9 @@
   (check-equal? (kill-quotes "the \"only\" way")
                 "the only way")
 
-  (check-equal?
+  ;; this is a crummy test, because the huffman encoding here
+  ;; is wildly underconstrained:
+  #;(check-equal?
    (generate-char-pwd (build-char-model 0 "abcde" (λ (x) #t))
                       (list #t #t #t #f #f #t #f #f #t #f #f #f))
    "abecd"))
