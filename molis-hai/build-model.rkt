@@ -103,7 +103,7 @@
 ;; huffman tree for choosing those keys
 (: count-hash->huff-tree (All (T) ((CountHash T) -> (MyTree T))))
 (define (count-hash->huff-tree letterhash)
-  (clump (count-hash->leafs letterhash)))
+  (build-huffman-tree (count-hash->leafs letterhash)))
 
 ;; given a letter-hash, convert it to a list of Leaf structures
 (: count-hash->leafs (All (T) ((CountHash T) -> (Listof (Leaf T)))))
