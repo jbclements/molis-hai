@@ -8,7 +8,8 @@
         "scribble-lib"
         "typed-racket-lib"
         "typed-racket-more"
-        "web-server-lib"))
+        "web-server-lib"
+        "pfds"))
 
 (define build-deps
   (list "rackunit-lib"
