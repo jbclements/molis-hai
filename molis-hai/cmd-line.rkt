@@ -26,6 +26,16 @@
 (define source-text
   (make-parameter (build-path here "a-tale-of-two-cities.txt")))
 
+
+
+(: cleanup-filter (Parameterof (String -> String)))
+(define cleanup-filter
+  (make-parameter whitespace-crunch))
+
+(: word-start-filter (Parameterof (String -> Boolean)))
+(define word-start-filter
+  (make-parameter starts-with-space?))
+
 (: set-numeric-parameter-from-string
    ((Parameterof Natural) Any Symbol Natural -> Void))
 (define (set-numeric-parameter-from-string param str name limit)
@@ -43,11 +53,12 @@
      (raise-argument-error 'set-numeric-parameter-from-string
                            "String" 1 param str name limit)]))
 
+;; replace all space and non-alnum chars with hyphens in the source text
+(: enable-whitespace-to-hyphens (-> Void))
+(define (enable-whitespace-to-hyphens)
+  (cleanup-filter non-alnum-to-hyphens)
+  (word-start-filter starts-with-hyphen?))
 
-;; does this string start with a space?
-(: starts-with-space? (String -> Boolean))
-(define (starts-with-space? str)
-  (equal? (string-ref str 0) #\space))
 
 ;; set the source text (if the file exists)
 (: set-source-text (Any -> Void))
@@ -80,13 +91,15 @@
                          (set-numeric-parameter-from-string
                           model-order order 'set-model-order 10)]
  [("-t" "--source-text") source-text "Source text corpus"
-                         (set-source-text source-text)])
+                         (set-source-text source-text)]
+ ["--hyphens" "replace whitespace with hyphens in source text"
+              (enable-whitespace-to-hyphens)])
 
 (define atotc-path (build-path here "a-tale-of-two-cities.txt"))
 
 (define model (build-char-model (model-order)
-                                (file->string (source-text))
-                                starts-with-space?))
+                                ((cleanup-filter) (file->string (source-text)))
+                                (word-start-filter)))
 
 (for ([i (in-range (num-pwds))])
   (display (substring (generate-char-pwd model
