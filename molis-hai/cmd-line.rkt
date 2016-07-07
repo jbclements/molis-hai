@@ -59,6 +59,13 @@
   (cleanup-filter non-alnum-to-hyphens)
   (word-start-filter starts-with-hyphen?))
 
+;; set the word-start-filter to start at any position
+(: start-anywhere (-> Void))
+(define (start-anywhere)
+  (word-start-filter yup))
+
+(define yup (λ (x) #t))
+
 
 ;; set the source text (if the file exists)
 (: set-source-text (Any -> Void))
@@ -93,7 +100,15 @@
  [("-t" "--source-text") source-text "Source text corpus"
                          (set-source-text source-text)]
  ["--hyphens" "replace whitespace with hyphens in source text"
-              (enable-whitespace-to-hyphens)])
+              (enable-whitespace-to-hyphens)]
+ ["--start-anywhere" "use every point in the text as a candidate starting point"
+                     (start-anywhere)])
+
+(when (and (= (model-order) 0)
+           (not (eq? (word-start-filter) yup)))
+  (fprintf (current-error-port)
+           "Warning: order=0, enabling \"--start-anywhere\"\n")
+  (start-anywhere))
 
 (define atotc-path (build-path here "a-tale-of-two-cities.txt"))
 
