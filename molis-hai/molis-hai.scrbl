@@ -22,6 +22,21 @@ To run it, use
 It also has a number of command-line arguments that you can use to control
 the password generation process.
 
+@verbatim{
+raco molis-hai [ <option> ... ]
+ where <option> is one of
+  -b <bits>, --bits <bits> : Number of bits of entropy
+  -n <pwds>, --passwords <pwds> : Number of passwords generated
+  -o <order>, --model-order <order> : Order of the model
+  -t <source-text>, --source-text <source-text> : Source text corpus
+  --hyphens : replace whitespace with hyphens in source text
+  --start-anywhere : use every point in the text as a candidate starting point
+  --help, -h : Show this help
+  -- : Do not treat any remaining argument as a switch (at this level)
+ Multiple single-letter switches can be combined after one `-'; for
+  example: `-h-' is the same as `-h --'
+}
+
 @section{Source Text}
 
 You can specify the source text using the @tt{-t} flag. A megabyte of text
