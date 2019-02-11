@@ -1,42 +1,23 @@
 #lang typed/racket
+(require typed/racket/random)
 
-;; produce cryptographically secure sequences of bits using /dev/urandom
 (provide random-bool-list
          random-bytes
          byte->bits
          bytes->bits
          bits->num)
 
-(define random-bit-source "/dev/urandom")
-
-(match (system-type 'os)
-  ['windows (error 'random-bits
-                   "don't know how to generate cryptographically secure bits on windows")]
-  [else
-   (when (not (file-exists? random-bit-source))
-     (error 'random-bits
-            "file /dev/urandom doesn't exist, no source for cryptographically secure bits"))])
-
-;; return a sequence of booleans generated in a cryptographically
-;; secure way by drawing from /dev/urandom
+;; return a sequence of booleans generated in a cryptographically secure way
 (: random-bool-list (Natural -> (Listof Boolean)))
 (define (random-bool-list num-bits)
   (define bytes-needed (ceiling (/ num-bits 8)))
   (define rand-bytes (random-bytes bytes-needed))
   (take (bytes->bits (bytes->list rand-bytes)) num-bits))
 
-;; return a sequence of bytes generated in a cryptographically
-;; secure way by drawing from /dev/urandom
+;; return a sequence of bytes generated in a cryptographically secure way
 (: random-bytes (Natural -> Bytes))
 (define (random-bytes num-bytes)
-  (define rand-bytes (call-with-input-file random-bit-source
-                       (lambda ([port : Input-Port])
-                         (read-bytes num-bytes port))))
-  (cond [(eof-object? rand-bytes)
-         (error 'random-bool-list
-                (string-append*
-                 (list "read from "random-bit-source" returned EOF")))]
-        [else rand-bytes]))
+  (crypto-random-bytes num-bytes))
 
 ;; convert a list of bytes to a list of bits
 (: bytes->bits ((Listof Byte) -> (Listof Boolean)))

@@ -3,7 +3,7 @@
 (define collection 'multi)
 
 (define deps
-  (list "base"
+  (list '["base" #:version "6.3"]
         "rackunit-lib"
         "scribble-lib"
         "typed-racket-lib"
